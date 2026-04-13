@@ -3,8 +3,7 @@ version: '3.8'
 services:
   # 调度大脑：AV Download Manager + Web UI
   av-download-manager:
-    build: .
-    image: av-download-manager:latest
+    image: ghcr.io/han0x0/av-dm:latest
     container_name: av-download-manager
     restart: unless-stopped
     environment:
