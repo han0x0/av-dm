@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # 调度大脑：AV Download Manager + Web UI
+  av-download-manager:
+    build: .
+    image: av-download-manager:latest
+    container_name: av-download-manager
+    restart: unless-stopped
+    environment:
+      # 基础配置（从 .env 读取）
+      - WEB_PORT=${WEB_PORT:-8080}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/av_downloads.db}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FILE=${LOG_FILE:-logs/app.log}
+      
+      # 配置文件路径（容器内）
+      # app.env 保留在项目根目录，通过 volumes 映射到 /app/app.env
+      - CONFIG_FILE=/app/app.env
+    
+    ports:
+      # Web UI 访问端口
+      - "${WEB_PORT:-8090}:80"
+      # FastAPI 端口（可选，主要用于调试）
+      - "${API_PORT:-8080}:8080"
+    
+    volumes:
+      # 应用业务配置文件（app.env）- 保留在项目根目录，映射到容器
+      - ./app.env:/app/app.env
+      # 数据目录（包含数据库）
+      - ./data:/app/data
+      # 日志目录
+      - ./logs:/app/logs
+      # 视频下载目录映射
+      - ${VIDEO_PATH}/downloaded:/home/sandbox/Downloads
+      # 视频输出目录映射
+      - ${VIDEO_PATH}:/video
+    
+    networks:
+      - av-net
+    
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  av-net:
+    external: true
+    name: av-net
