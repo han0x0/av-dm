@@ -55,5 +55,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: SQLite with connection pooling.
 - **Deployment**: Docker Compose with multi-service architecture.
 
-[Unreleased]: https://github.com/han0x0/adm/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/han0x0/adm/releases/tag/v0.1.0
+[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/han0x0/av-dm/releases/tag/v0.1.0

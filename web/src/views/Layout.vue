@@ -3,7 +3,7 @@
     <el-aside width="220px" class="sidebar">
       <div class="logo">
         <el-icon :size="28" color="#409EFF"><VideoPlay /></el-icon>
-        <span>ADM 管理</span>
+        <span>AV-DM 管理</span>
       </div>
       
       <el-menu
