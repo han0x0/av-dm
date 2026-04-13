@@ -188,7 +188,7 @@ const triggerWorkflow = async (name: string) => {
 </script>
 
 <style scoped>
-.stat-card {
+.stat-card :deep(.el-card__body) {
   display: flex;
   align-items: center;
   padding: 10px;
