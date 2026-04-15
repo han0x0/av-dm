@@ -18,26 +18,37 @@ def parse_log_line(line: str) -> Optional[LogEntry]:
     """
     解析日志行
     
-    期望格式: 2024-01-15 10:30:45 | LEVEL | MODULE | LINE | MESSAGE
+    实际格式: 2024-01-15 10:30:45.123 | LEVEL | name:function:line | MESSAGE
     """
     try:
-        # 简单解析，实际格式可能需要调整
-        parts = line.split("|", 4)
-        if len(parts) >= 5:
+        parts = line.split("|", 3)
+        if len(parts) >= 4:
             timestamp_str = parts[0].strip()
             level = parts[1].strip()
-            module = parts[2].strip()
-            line_no = int(parts[3].strip()) if parts[3].strip().isdigit() else None
-            message = parts[4].strip()
+            module_info = parts[2].strip()
+            message = parts[3].strip()
             
             from datetime import datetime
-            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+            
+            # 从 name:function:line 中提取模块和行号
+            module = None
+            line_no = None
+            if ":" in module_info:
+                module_parts = module_info.rsplit(":", 1)
+                if module_parts[-1].isdigit():
+                    line_no = int(module_parts[-1])
+                    module = module_parts[0] or None
+                else:
+                    module = module_info or None
+            else:
+                module = module_info or None
             
             return LogEntry(
                 timestamp=timestamp,
                 level=level,
                 message=message,
-                module=module or None,
+                module=module,
                 line=line_no
             )
     except Exception:
