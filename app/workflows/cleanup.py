@@ -172,7 +172,7 @@ class CleanupWorkflow:
         name = item.name
         
         # 常见番号格式：XXX-123, XXX-123A, ABC123, etc.
-        pattern = r'([A-Z]{2,6})[-_]?([0-9]{2,5})([A-Z]?)'
+        pattern = r'(\d*[A-Z]{2,6})[-_]?([0-9]{2,5})([A-Z]?)'
         
         # 先从路径匹配
         matches = re.findall(pattern, path.upper())

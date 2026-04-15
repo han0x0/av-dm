@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for multi-arch Docker images (`linux/amd64`, `linux/arm64`).
 - `latest`, `main`, and SemVer (`X.Y.Z`, `X.Y`, `X`) Docker image tags.
 
+## [0.1.1] - 2026-04-15
+
+### Fixed
+- Fixed content ID extraction to support numeric prefixes (e.g. `200GANA-3370` was incorrectly extracted as `GANA-3370`). This affected both FreshRSS RSSHub fallback and cleanup workflow matching.
+
 ## [0.1.0] - 2026-04-13
 
 ### Added
@@ -55,5 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: SQLite with connection pooling.
 - **Deployment**: Docker Compose with multi-service architecture.
 
-[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/han0x0/av-dm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/han0x0/av-dm/releases/tag/v0.1.0
