@@ -4,7 +4,7 @@ services:
   # 调度大脑：AV Download Manager + Web UI
   av-download-manager:
     image: ghcr.io/han0x0/av-dm:latest
-    container_name: av-download-manager
+    container_name: av-dm
     restart: unless-stopped
     environment:
       # 基础配置（从 .env 读取）
