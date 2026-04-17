@@ -61,6 +61,7 @@ WORKFLOW.md
 BACKUP_NAMING.md
 
 # Testing
+tests/
 .pytest_cache/
 .coverage
 htmlcov/
