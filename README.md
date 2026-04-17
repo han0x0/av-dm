@@ -54,7 +54,7 @@ Workflow 3/4 (每小时)
 - 自动从 FreshRSS 获取 Starred items
 - **🆕 自动重试机制**：同时获取带有"源站抓取失败"标签的项目，定期重试抓取磁力链接
 - 提取番号和磁力链接
-- **🆕 RSSHub 磁力链接回退**：当 FreshRSS 内容无磁力链接时，自动从 RSSHub 源站抓取
+- **🆕 JavBus 直抓 + RSSHub 回退**：当 FreshRSS 内容无磁力链接时，优先通过 JavBus AJAX 接口直抓，失败后再 fallback 到 RSSHub
 - 去重检查（基于 content_id）
 - 提交到 BitComet 下载
 - 自动打标签："已开始下载"（提交时）/"下载完成"（完成时，同时移除"已开始下载"）/"已重复"/"下载错误"/"无磁力链接"/"源站抓取失败"
@@ -359,7 +359,8 @@ av-download-manager/
 | 变量 | 说明 | 示例 |
 |------|------|------|
 | `FRESHRSS_URL` | FreshRSS 地址 | `https://rss.example.com` |
-| `RSSHUB_BASE_URL` | RSSHub 地址（可选，用于磁力链接回退） | `https://rsshub.example.com:8888` |
+| `JAVBUS_BASE_URL` | JavBus 地址（可选，用于磁力链接直抓） | `https://www.javbus.com` |
+| `RSSHUB_BASE_URL` | RSSHub 地址（可选，用于 JavBus 直抓失败后的回退） | `https://rsshub.example.com:8888` |
 | `BITCOMET_URL` | BitComet WebUI 地址 | `https://bit.example.com:8888` |
 | `BITCOMET_DOWNLOAD_PATH` | BitComet 下载目录 | `/home/sandbox/Downloads` |
 | `JAVSP_URL` | JavSP-Web 地址 | `https://jav.example.com` |
@@ -481,36 +482,50 @@ Workflow 4 使用两种方式检测 JavSP 整理完成：
 - **scan_folder**: JavSP 整理单文件任务后会删除整个文件夹
 - **历史记录**: 备用确认，确保 JavSP 确实成功处理
 
-### 4. RSSHub 磁力链接回退 ⭐
+### 4. JavBus 磁力链接直抓 + RSSHub 回退 ⭐
 
-当 FreshRSS 条目中**没有磁力链接**时，Workflow 1 会自动尝试从 **RSSHub** 源站抓取：
+当 FreshRSS 条目中**没有磁力链接**时，Workflow 1 会按以下优先级尝试抓取：
 
 ```
 FreshRSS 条目 (内容无磁力)
     ↓
 提取番号: SABA-975
     ↓
-构造 RSSHub URL: https://rsshub.example.com/javbus/home/ja/SABA-975
-    ↓
-抓取 RSS 内容 → 提取磁力链接
-    ↓
-成功 → 正常下载流程
-失败 → 标记 "源站抓取失败"
+├─ 第1步: JavBus 直抓
+│   访问页面 → 提取 gid/uc → 调用 AJAX 接口获取磁力链接
+│   成功 → 正常下载流程
+│   失败 → 继续下一步
+│
+└─ 第2步: RSSHub 回退 (fallback)
+    构造 RSSHub URL: https://rsshub.example.com/javbus/home/ja/SABA-975
+    抓取 RSS 内容 → 提取磁力链接
+    成功 → 正常下载流程
+    失败 → 标记 "源站抓取失败"
 ```
 
-**为什么需要这个功能？**
-- 某些 RSS 源（如 JavBus）在 FreshRSS 中显示的内容可能不完整
-- 但 RSSHub 源站通常包含完整的磁力链接信息
-- 自动回退机制无需人工干预
+**为什么需要 JavBus 直抓？**
+- JavBus 新片的磁力链接是**动态 AJAX 加载**的，RSSHub 只能解析静态 HTML
+- RSSHub 在解析新片时，可能错误地抓到页面底部"相关推荐"中的其他番号磁力链接
+- 这会导致 ADM 下载了错误的影片（番号对但磁力链接是其他影片）
+- JavBus 直抓通过调用真实的 AJAX 接口 (`ajax/uncledatoolsbyajax.php`)，能获取准确的磁力链接
+
+**DN 校验（番号匹配校验）**
+- 无论是 JavBus 还是 RSSHub 返回的磁力链接，都会检查 `dn` 参数是否包含目标番号
+- 如果抓到的磁力链接对应其他明确番号，ADM 会**拒绝使用**该链接，避免下载错误影片
+- 拒绝后会标记为 `"源站抓取失败"`，等待下次重试
 
 **配置要求：**
 ```env
+# JavBus 直抓（默认 https://www.javbus.com，如有反代可修改）
+JAVBUS_BASE_URL=https://www.javbus.com
+
+# RSSHub 回退（可选）
 RSSHUB_BASE_URL=https://rsshub.your-domain.com
 ```
 
 **标签说明：**
-- `源站抓取失败` - 有 RSSHub 配置但抓取不到磁力链接
-- `无磁力链接` - 没有 RSSHub 配置或无法构造抓取 URL
+- `源站抓取失败` - JavBus 和 RSSHub 均抓取失败，或抓到的磁力链接 dn 不匹配目标番号（会被定期重试）
+- `无磁力链接` - 没有 JavBus/RSSHub 配置或无法构造抓取 URL
 
 ### 5. 自动重试机制 ⭐
 
@@ -710,6 +725,6 @@ http://localhost:8080/docs
 
 **项目状态**: ✅ 完整流程测试通过，已就绪 for 生产环境
 
-**最新功能**: 配置管理系统（2026-04-13）- 支持 Web UI 实时配置、服务连接测试、配置备份/恢复
+**最新功能**: JavBus 直抓 + DN 校验（2026-04-17）- 修复 RSSHub 抓取到错误番号磁力链接的问题
 
-*最后更新: 2026-04-13* (新增配置管理功能)
+*最后更新: 2026-04-17* (新增 JavBus 直抓和磁力链接 DN 校验)

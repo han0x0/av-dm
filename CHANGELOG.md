@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for multi-arch Docker images (`linux/amd64`, `linux/arm64`).
 - `latest`, `main`, and SemVer (`X.Y.Z`, `X.Y`, `X`) Docker image tags.
 
+## [0.1.2] - 2026-04-17
+
+### Fixed
+- **磁力链接番号不匹配问题**：RSSHub 在解析新片时，可能抓取到页面底部"相关推荐"中的错误番号磁力链接，导致下载了错误的影片。
+  - 新增 **JavBus 直抓机制**：优先通过 JavBus AJAX 接口 (`ajax/uncledatoolsbyajax.php`) 抓取磁力链接，准确率更高。
+  - 新增 **磁力链接 DN 校验**：提取到的磁力链接必须匹配目标番号才使用，否则拒绝下载并标记为"源站抓取失败"。
+  - RSSHub 改为 JavBus 失败后的 fallback 机制。
+
+### Technical Details
+- JavBus 直抓通过提取页面 HTML 中的 `gid` 和 `uc` 参数调用 AJAX 接口。
+- 针对 JavBus 的年龄验证 302 响应，关闭 httpx 自动重定向以正确读取响应体中的 `gid`。
+- 新增 `JAVBUS_BASE_URL` 配置项（默认 `https://www.javbus.com`）。
+
 ## [0.1.1] - 2026-04-15
 
 ### Fixed
@@ -60,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: SQLite with connection pooling.
 - **Deployment**: Docker Compose with multi-service architecture.
 
-[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/han0x0/av-dm/releases/tag/v0.1.2
 [0.1.1]: https://github.com/han0x0/av-dm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/han0x0/av-dm/releases/tag/v0.1.0

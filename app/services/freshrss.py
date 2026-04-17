@@ -5,6 +5,7 @@ FreshRSS API 客户端
 
 import re
 import html
+import urllib.parse
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
@@ -47,10 +48,12 @@ class FreshRSSItem:
             source_url=source_url,
         )
         
-        # 提取磁力链接
-        freshrss_item.magnet_url = freshrss_item._extract_magnet(content)
-        # 提取番号
+        # 提取番号（先提取番号，以便后续用番号校验磁力链接）
         freshrss_item.uid = freshrss_item._extract_uid(freshrss_item.title, content)
+        # 提取磁力链接（带番号校验，避免取到相关推荐中的错误番号）
+        freshrss_item.magnet_url = freshrss_item._extract_magnet(
+            content, validate_uid=freshrss_item.uid
+        )
         
         return freshrss_item
     
@@ -60,10 +63,11 @@ class FreshRSSItem:
         timeout: int = 30
     ) -> Optional[str]:
         """
-        从 RSSHub 源站抓取磁力链接
+        从源站抓取磁力链接
         
-        当 FreshRSS 内容中没有磁力链接时，尝试从 RSSHub 重新获取该条目的 RSS 数据，
-        因为 RSSHub 的完整内容中通常包含磁力链接。
+        策略：
+        1. 优先直接从 JavBus 页面抓取（通过 AJAX 接口获取准确的磁力链接）
+        2. 如果 JavBus 失败，fallback 到 RSSHub
         
         Args:
             rsshub_base_url: RSSHub 服务器地址，如 "https://rsshub.your-domain.com"
@@ -79,7 +83,19 @@ class FreshRSSItem:
         
         self._fetched_from_source = True
         
-        # 构造 RSSHub 抓取 URL
+        if not self.uid:
+            logger.debug(f"条目 {self.id_entry} 无番号，跳过源站抓取")
+            return None
+        
+        # 步骤 1: 优先从 JavBus 直抓
+        logger.info(f"尝试从 JavBus 抓取磁力链接: {self.uid}")
+        magnet = await self._fetch_magnet_from_javbus(timeout=timeout)
+        if magnet:
+            self.magnet_url = magnet
+            return magnet
+        
+        # 步骤 2: Fallback 到 RSSHub
+        logger.info(f"JavBus 抓取失败，尝试从 RSSHub 抓取: {self.uid}")
         rsshub_url = self._build_rsshub_url(rsshub_base_url)
         if not rsshub_url:
             logger.debug(f"条目 {self.id_entry} 无法构造 RSSHub URL，跳过")
@@ -92,18 +108,15 @@ class FreshRSSItem:
                 response = await client.get(rsshub_url)
                 response.raise_for_status()
                 
-                # 获取 RSS 内容
                 rss_content = response.text
-                
-                # 从 RSS 内容中提取磁力链接
-                magnet = self._extract_magnet(rss_content)
+                magnet = self._extract_magnet(rss_content, validate_uid=self.uid)
                 
                 if magnet:
-                    logger.info(f"✅ 从 RSSHub 成功抓取磁力链接: {magnet[:50]}...")
+                    logger.info(f"✅ 从 RSSHub 成功抓取磁力链接: {magnet[:60]}...")
                     self.magnet_url = magnet
                     return magnet
                 else:
-                    logger.warning(f"⚠️ RSSHub 内容中未找到磁力链接")
+                    logger.warning(f"⚠️ RSSHub 内容中未找到匹配番号 {self.uid} 的磁力链接")
                     
         except httpx.HTTPStatusError as e:
             logger.error(f"❌ 抓取 RSSHub 失败 (HTTP {e.response.status_code}): {rsshub_url}")
@@ -111,6 +124,99 @@ class FreshRSSItem:
             logger.error(f"❌ 抓取 RSSHub 请求失败: {e}")
         except Exception as e:
             logger.error(f"❌ 抓取 RSSHub 异常: {e}")
+        
+        return None
+    
+    async def _fetch_magnet_from_javbus(self, timeout: int = 30) -> Optional[str]:
+        """
+        直接从 JavBus 抓取磁力链接
+        
+        流程：
+        1. 访问 JavBus 番号页面获取 HTML（不跟随重定向，因为 JavBus 的 302
+           响应体中已经包含 gid 等关键信息）
+        2. 从 HTML 中提取 gid 和 uc
+        3. 调用 AJAX 接口获取磁力链接表格
+        4. 解析并返回匹配目标番号的磁力链接
+        """
+        if not self.uid:
+            return None
+        
+        base_url = getattr(settings, 'javbus_base_url', 'https://www.javbus.com')
+        base_url = base_url.rstrip('/') if base_url else 'https://www.javbus.com'
+        javbus_url = f"{base_url}/ja/{self.uid}"
+        
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "ja,en-US;q=0.9,en;q=0.8",
+        }
+        
+        try:
+            # 禁用 HTTP/2 和自动重定向：
+            # - JavBus 在无 cookie 时会返回 302，但响应体中已包含 gid
+            # - HTTP/2 下 Cloudflare 对 cookie 的处理可能与 HTTP/1.1 不同
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                follow_redirects=False,
+                http2=False,
+            ) as client:
+                # 1. 获取页面 HTML（允许 302，因为 JavBus 的 302 响应体中有 gid）
+                response = await client.get(javbus_url, headers=headers)
+                if response.status_code >= 400:
+                    logger.debug(
+                        f"JavBus 页面返回 HTTP {response.status_code}: {self.uid}"
+                    )
+                    return None
+                
+                html_content = response.text
+                
+                # 2. 提取 gid 和 uc
+                gid_match = re.search(r'var\s+gid\s*=\s*(\d+);', html_content)
+                uc_match = re.search(r'var\s+uc\s*=\s*(\d+);', html_content)
+                
+                if not gid_match:
+                    logger.debug(f"JavBus 页面未找到 gid: {self.uid}")
+                    return None
+                
+                gid = gid_match.group(1)
+                uc = uc_match.group(1) if uc_match else "0"
+                
+                # 3. 调用 AJAX 接口获取磁力链接
+                ajax_url = (
+                    f"{base_url}/ajax/uncledatoolsbyajax.php?"
+                    f"gid={gid}&lang=ja&uc={uc}&floor=1"
+                )
+                ajax_headers = {
+                    **headers,
+                    "Referer": javbus_url,
+                    "X-Requested-With": "XMLHttpRequest",
+                }
+                
+                ajax_response = await client.get(ajax_url, headers=ajax_headers)
+                ajax_response.raise_for_status()
+                ajax_content = ajax_response.text
+                
+                # 4. 提取并校验磁力链接
+                magnet = self._extract_magnet(ajax_content, validate_uid=self.uid)
+                if magnet:
+                    logger.info(f"✅ 从 JavBus 成功抓取磁力链接: {magnet[:60]}...")
+                    return magnet
+                
+                logger.warning(
+                    f"⚠️ JavBus 内容中未找到匹配番号 {self.uid} 的磁力链接"
+                )
+                
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"❌ 抓取 JavBus 失败 (HTTP {e.response.status_code}): {javbus_url}"
+            )
+        except httpx.RequestError as e:
+            logger.error(f"❌ 抓取 JavBus 请求失败: {e}")
+        except Exception as e:
+            logger.error(f"❌ 抓取 JavBus 异常: {e}")
         
         return None
     
@@ -148,26 +254,98 @@ class FreshRSSItem:
         logger.warning(f"无法构造 RSSHub URL，请配置 rsshub_base_url 参数")
         return None
     
-    def _extract_magnet(self, content: str) -> Optional[str]:
-        """从内容中提取磁力链接"""
-        import html
-        # 先解码 HTML 实体
-        content = html.unescape(content)
+    def _extract_magnet(
+        self, content: str, validate_uid: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        从内容中提取磁力链接
+        
+        Args:
+            content: HTML 或文本内容
+            validate_uid: 目标番号，如果提供则做 dn 校验，
+                         优先返回 dn 中包含目标番号的链接
+        """
+        # 彻底解码 HTML 实体（处理多次转义如 &amp;amp; -> &amp; -> &）
+        while True:
+            decoded = html.unescape(content)
+            if decoded == content:
+                break
+            content = decoded
         
         # 磁力链接正则
-        magnet_pattern = r'magnet:\?xt=urn:btih:[a-zA-Z0-9]+[^"\s<>]*'
-        match = re.search(magnet_pattern, content)
-        if match:
-            magnet = match.group(0)
-            # 清理可能的 HTML 转义
+        # 排除常见 HTML/JS 包裹字符：引号、尖括号、单引号、右括号、反斜杠
+        magnet_pattern = r'magnet:\?xt=urn:btih:[a-zA-Z0-9]+[^"\s<>\'\)\\]*'
+        matches = re.findall(magnet_pattern, content)
+        if not matches:
+            if 'magnet' in content.lower():
+                logger.debug(
+                    f"检测到'magnet'关键字但未匹配成功，内容片段: {content[:500]}"
+                )
+            return None
+        
+        # 去重并保持原始顺序
+        seen = set()
+        magnets = []
+        for magnet in matches:
             magnet = html.unescape(magnet)
-            return magnet
+            if magnet not in seen:
+                seen.add(magnet)
+                magnets.append(magnet)
         
-        # 调试：如果没找到，打印部分内容
-        if 'magnet' in content.lower():
-            logger.debug(f"检测到'magnet'关键字但未匹配成功，内容片段: {content[:500]}")
+        if not validate_uid:
+            return magnets[0]
         
+        # 优先选择 dn 中包含目标番号的链接
+        for magnet in magnets:
+            if self._magnet_matches_uid(magnet, validate_uid):
+                return magnet
+        
+        # 如果没有匹配的，检查是否有不含其他明确番号的链接
+        # （避免下载到"相关推荐"中的其他影片）
+        for magnet in magnets:
+            if not self._magnet_has_other_uid(magnet, validate_uid):
+                return magnet
+        
+        # 所有磁力链接都对应其他明确的番号，拒绝使用
+        logger.warning(
+            f"所有磁力链接均不匹配目标番号 {validate_uid}，可用链接: {magnets[:3]}"
+        )
         return None
+    
+    def _magnet_matches_uid(self, magnet: str, uid: str) -> bool:
+        """检查磁力链接的 dn 参数是否包含目标番号"""
+        dn_match = re.search(r'[&?]dn=([^&]+)', magnet)
+        if not dn_match:
+            return False
+        
+        dn = urllib.parse.unquote(dn_match.group(1)).upper().replace('-', '')
+        uid_norm = uid.upper().replace('-', '')
+        return uid_norm in dn
+    
+    def _magnet_has_other_uid(self, magnet: str, uid: str) -> bool:
+        """
+        检查磁力链接的 dn 参数中是否包含**其他**明确的番号
+        
+        返回 True 表示 dn 中有番号但都不是目标番号（说明是其他影片）
+        返回 False 表示 dn 中没有明确番号，或包含目标番号
+        """
+        dn_match = re.search(r'[&?]dn=([^&]+)', magnet)
+        if not dn_match:
+            return False
+        
+        dn = urllib.parse.unquote(dn_match.group(1))
+        # 提取 dn 中所有可能的番号
+        codes = re.findall(r'[A-Z]{2,6}-?\d{2,5}[A-Z]?', dn, re.IGNORECASE)
+        if not codes:
+            return False
+        
+        uid_norm = uid.upper().replace('-', '')
+        for code in codes:
+            if code.upper().replace('-', '') == uid_norm:
+                return False
+        
+        # dn 中有番号，但都不匹配目标番号
+        return True
     
     def _extract_uid(self, title: str, content: str) -> Optional[str]:
         """
