@@ -8,11 +8,22 @@ import html
 import urllib.parse
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import httpx
 from app.services.base import BaseHTTPClient
 from app.config import settings
 from app.logger import logger
+
+
+@dataclass
+class MagnetInfo:
+    """磁力链接信息"""
+    magnet_url: str
+    filename: str
+    size_str: str
+    size_mb: float
+    date: datetime
 
 
 @dataclass
@@ -254,6 +265,164 @@ class FreshRSSItem:
         logger.warning(f"无法构造 RSSHub URL，请配置 rsshub_base_url 参数")
         return None
     
+    def _parse_size_to_mb(self, size_str: str) -> float:
+        """将文件大小字符串转换为 MB 数值"""
+        size_str = size_str.strip().upper().replace(',', '').replace(' ', '')
+        match = re.match(r'^(\d+\.?\d*)\s*(TB|GB|MB)?$', size_str)
+        if not match:
+            return 0.0
+        
+        val = float(match.group(1))
+        unit = match.group(2) or 'MB'
+        
+        if unit == 'TB':
+            return val * 1024 * 1024
+        elif unit == 'GB':
+            return val * 1024
+        else:  # MB
+            return val
+    
+    def _extract_all_magnets(self, content: str) -> List[MagnetInfo]:
+        """
+        从 HTML 内容中提取所有磁力链接及其元数据
+        
+        支持两种格式：
+        1. RSS 中的完整表格：<table><tr>...</tr></table>
+        2. JavBus AJAX 返回的行片段：<tr>...</tr>（无 table 包裹）
+        """
+        magnets: List[MagnetInfo] = []
+        
+        # 策略 1: 尝试从 <table> 中提取行（RSS 格式）
+        table_match = re.search(r'<table[^>]*>(.*?)</table>', content, re.DOTALL | re.IGNORECASE)
+        if table_match:
+            rows = re.findall(r'<tr[^>]*>(.*?)</tr>', table_match.group(1), re.DOTALL | re.IGNORECASE)
+        else:
+            # 策略 2: 直接从 content 中提取 <tr> 行（JavBus AJAX 格式）
+            rows = re.findall(r'<tr[^>]*>(.*?)</tr>', content, re.DOTALL | re.IGNORECASE)
+        
+        if not rows:
+            return magnets
+        
+        for row in rows:
+            # 跳过表头行
+            if '<th' in row:
+                continue
+            
+            # 提取 magnet 链接
+            magnet_match = re.search(r'href="(magnet:\?xt=urn:btih:[^"]+)"', row, re.IGNORECASE)
+            if not magnet_match:
+                continue
+            
+            magnet_url = html.unescape(magnet_match.group(1))
+            
+            # 提取所有 <td> 的内容
+            tds = re.findall(r'<td[^>]*>(.*?)</td>', row, re.DOTALL | re.IGNORECASE)
+            if len(tds) < 3:
+                continue
+            
+            # 从 dn 参数提取文件名
+            filename = ""
+            dn_match = re.search(r'[&?]dn=([^&]+)', magnet_url)
+            if dn_match:
+                filename = urllib.parse.unquote(dn_match.group(1))
+            
+            # 提取大小和日期（去掉 HTML 标签）
+            size_str = re.sub(r'<[^>]+>', '', tds[1]).strip()
+            date_str = re.sub(r'<[^>]+>', '', tds[2]).strip()
+            
+            # 解析日期
+            try:
+                date = datetime.strptime(date_str, '%Y-%m-%d')
+            except ValueError:
+                continue
+            
+            # 解析大小
+            size_mb = self._parse_size_to_mb(size_str)
+            
+            magnets.append(MagnetInfo(
+                magnet_url=magnet_url,
+                filename=filename,
+                size_str=size_str,
+                size_mb=size_mb,
+                date=date,
+            ))
+        
+        return magnets
+    
+    def _select_best_magnet(
+        self,
+        magnets: List[MagnetInfo],
+        uid: str
+    ) -> Optional[str]:
+        """
+        按规则选择最佳磁力链接
+        
+        规则：
+        1. 优先：文件名含 -U / -AI / -UC / -uncensored（同一优先级）
+           → 组内按日期升序 → 大小升序，选第一个
+        2. 次优：文件名含 -C
+           → 组内按日期升序 → 大小升序，选第一个
+        3. 兜底：以上都没有
+           → 按日期降序 → 大小升序，选第一个（最新且最小）
+        """
+        if not magnets:
+            return None
+        
+        # 过滤出匹配目标番号的磁力
+        valid_magnets = [m for m in magnets if self._magnet_matches_uid(m.magnet_url, uid)]
+        
+        if not valid_magnets:
+            # 如果没有明确匹配的，退而求其次：不包含其他明确番号的
+            valid_magnets = [m for m in magnets if not self._magnet_has_other_uid(m.magnet_url, uid)]
+        
+        if not valid_magnets:
+            return None
+        
+        # 无码关键词正则（匹配 uncen, uncensored, uncensored leak 等）
+        _uncensored_pattern = re.compile(r'(uncen(sor(ed)?)?([- _\s]*leak(ed)?)?)', re.I)
+        
+        # 定义优先级判断
+        def is_priority_1(m: MagnetInfo) -> bool:
+            """无码/破解/流出：优先级 1"""
+            name_upper = m.filename.upper()
+            # 检查后缀
+            suffixes = ['-U', '-AI', '-UC', '-UNCENSORED', '-UNCEN', '-UNCENS', '-LEAK', '-LEAKED']
+            if any(suffix in name_upper for suffix in suffixes):
+                return True
+            # 检查无码关键词
+            if _uncensored_pattern.search(m.filename):
+                return True
+            return False
+        
+        def is_priority_2(m: MagnetInfo) -> bool:
+            """中文字幕：优先级 2（排除已在 P1 中的）"""
+            if is_priority_1(m):
+                return False
+            name_upper = m.filename.upper()
+            return any(suffix in name_upper for suffix in ['-C', '-CH', '-CN'])
+        
+        # 分组
+        p1 = [m for m in valid_magnets if is_priority_1(m)]
+        p2 = [m for m in valid_magnets if is_priority_2(m)]
+        p3 = [m for m in valid_magnets if m not in p1 and m not in p2]
+        
+        if p1:
+            # 日期升序，大小升序
+            p1.sort(key=lambda m: m.size_mb)
+            p1.sort(key=lambda m: m.date)
+            return p1[0].magnet_url
+        elif p2:
+            p2.sort(key=lambda m: m.size_mb)
+            p2.sort(key=lambda m: m.date)
+            return p2[0].magnet_url
+        elif p3:
+            # 兜底：日期降序，大小升序
+            p3.sort(key=lambda m: m.size_mb)
+            p3.sort(key=lambda m: m.date, reverse=True)
+            return p3[0].magnet_url
+        
+        return None
+    
     def _extract_magnet(
         self, content: str, validate_uid: Optional[str] = None
     ) -> Optional[str]:
@@ -272,8 +441,15 @@ class FreshRSSItem:
                 break
             content = decoded
         
-        # 磁力链接正则
-        # 排除常见 HTML/JS 包裹字符：引号、尖括号、单引号、右括号、反斜杠
+        # 新逻辑：如果提供了番号，先尝试从 HTML 表格中解析并选择最佳磁力
+        if validate_uid:
+            all_magnets = self._extract_all_magnets(content)
+            if all_magnets:
+                best = self._select_best_magnet(all_magnets, validate_uid)
+                if best:
+                    return best
+        
+        # Fallback: 原有的正则提取逻辑（用于非表格格式或表格解析失败的情况）
         magnet_pattern = r'magnet:\?xt=urn:btih:[a-zA-Z0-9]+[^"\s<>\'\)\\]*'
         matches = re.findall(magnet_pattern, content)
         if not matches:
@@ -353,35 +529,108 @@ class FreshRSSItem:
         
         策略：优先从标题提取，因为标题通常包含正确的番号，
         而内容 HTML 中可能包含其他类似番号的字符串（如推荐内容）
+        
+        支持的番号格式（参考 JavSP）：
+        FC2, HEYDOUGA, GETCHU, GYUTTO, 259LUXU, MUGEN, IBW,
+        普通番号, 东热系列, TMA, R18, 纯数字无码等
         """
-        # 常见番号格式: XXX-123, XXX-1234, XXX-12345, XXX123, XXX-123A 等
-        # 数字部分支持 2-5 位（如 01701 是 5 位）
-        patterns = [
-            r'(\d+[A-Z]{2,6}-?\d{2,5}[A-Z]?)',  # 数字前缀格式，如 200GANA-3370
-            r'([A-Z]{2,6}-?\d{2,5}[A-Z]?)',      # 标准格式，支持2-5位数字
-        ]
+        
+        def _extract_from_text(text: str) -> Optional[str]:
+            """从单个文本中提取番号"""
+            norm = text.upper()
+            
+            # 1. FC2: FC2-123456, FC2PPV-123456
+            match = re.search(r'FC2[^A-Z\d]{0,5}(PPV[^A-Z\d]{0,5})?(\d{5,7})', norm, re.I)
+            if match:
+                return 'FC2-' + match.group(2)
+            
+            # 2. HEYDOUGA: HEYDOUGA-1234-567
+            match = re.search(r'(HEYDOUGA)[-_]*(\d{4})[-_]0?(\d{3,5})', norm, re.I)
+            if match:
+                return '-'.join(match.groups())
+            
+            # 3. GETCHU
+            match = re.search(r'GETCHU[-_]*(\d+)', norm, re.I)
+            if match:
+                return 'GETCHU-' + match.group(1)
+            
+            # 4. GYUTTO
+            match = re.search(r'GYUTTO[-_]*(\d+)', norm, re.I)
+            if match:
+                return 'GYUTTO-' + match.group(1)
+            
+            # 5. 259LUXU
+            match = re.search(r'259LUXU[-_]*(\d+)', norm, re.I)
+            if match:
+                return '259LUXU-' + match.group(1)
+            
+            # 6. MUGEN: MKBD-S123, MK3D2DBD-01
+            match = re.search(r'(MKB?D)[-_]*(S\d{2,3})|(MK3D2DBD|S2M|S2MBD)[-_]*(\d{2,3})', norm, re.I)
+            if match:
+                if match.group(1) is not None:
+                    return match.group(1) + '-' + match.group(2)
+                else:
+                    return match.group(3) + '-' + match.group(4)
+            
+            # 7. IBW with z suffix
+            match = re.search(r'(IBW)[-_](\d{2,5}z)', norm, re.I)
+            if match:
+                return match.group(1) + '-' + match.group(2)
+            
+            # 8. 数字前缀格式（如 200GANA-3370）
+            match = re.search(r'(\d+[A-Z]{2,6}-?\d{2,5}[A-Z]?)', norm, re.I)
+            if match:
+                uid = match.group(1).upper()
+                if '-' not in uid:
+                    uid = re.sub(r'(\d{2,5}[A-Z]?)$', r'-\1', uid)
+                return uid
+            
+            # 9. 普通番号（带分隔符）
+            match = re.search(r'([A-Z]{2,10})[-_](\d{2,5})', norm, re.I)
+            if match:
+                return match.group(1) + '-' + match.group(2)
+            
+            # 10. 东热 RED/SKY/EX
+            match = re.search(r'(RED[01]\d\d|SKY[0-3]\d\d|EX00[01]\d)', norm, re.I)
+            if match:
+                return match.group(1).upper()
+            
+            # 11. TMA
+            match = re.search(r'(T[23]8[-_]\d{3})', norm)
+            if match:
+                return match.group(1).upper()
+            
+            # 12. 东热 N/K
+            match = re.search(r'(N\d{4}|K\d{4})', norm, re.I)
+            if match:
+                return match.group(1).upper()
+            
+            # 13. R18
+            match = re.search(r'(R18-?\d{3})', norm, re.I)
+            if match:
+                return match.group(1).upper()
+            
+            # 14. 纯数字（无码影片）
+            match = re.search(r'(\d{6}[-_]\d{2,3})', norm)
+            if match:
+                return match.group(1)
+            
+            # 15. 普通番号（无分隔符，视为缺失横线）
+            match = re.search(r'([A-Z]{2,})(\d{2,5})', norm, re.I)
+            if match:
+                return match.group(1) + '-' + match.group(2)
+            
+            return None
         
         # 第一步：优先从标题提取（更准确）
-        for pattern in patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
-            if match:
-                uid = match.group(1).upper()
-                # 清理格式：如果没有横线，在数字前添加横线
-                uid = re.sub(r'(\d{2,5}[A-Z]?)$', lambda m: '-' + m.group(1), uid) if '-' not in uid else uid
-                # 验证：番号前缀应该在常见范围内（避免匹配到其他字符串）
-                prefix = uid.split('-')[0] if '-' in uid else uid[:3]
-                if len(prefix) >= 2:
-                    return uid
+        uid = _extract_from_text(title)
+        if uid:
+            return uid
         
         # 第二步：如果标题中没有，从内容中提取
-        for pattern in patterns:
-            match = re.search(pattern, content, re.IGNORECASE)
-            if match:
-                uid = match.group(1).upper()
-                uid = re.sub(r'(\d{2,5}[A-Z]?)$', lambda m: '-' + m.group(1), uid) if '-' not in uid else uid
-                prefix = uid.split('-')[0] if '-' in uid else uid[:3]
-                if len(prefix) >= 2:
-                    return uid
+        uid = _extract_from_text(content)
+        if uid:
+            return uid
         
         return None
 

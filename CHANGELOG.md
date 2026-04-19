@@ -7,10 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-04-19
+
 ### Added
-- GitHub Actions workflow for automatically building and pushing Docker images to ghcr.io.
-- Support for multi-arch Docker images (`linux/amd64`, `linux/arm64`).
-- `latest`, `main`, and SemVer (`X.Y.Z`, `X.Y`, `X`) Docker image tags.
+- **磁力链接智能选择**：从多个磁力链接中按规则选择最佳链接。
+  - P1 优先级（无码/破解/流出）：文件名含 `-U`, `-AI`, `-UC`, `-UNCENSORED`, `-UNCEN`, `-UNCENS`, `-LEAK`, `-LEAKED` 或 `uncensored`/`uncensored leak` 关键词。
+  - P2 优先级（中文字幕）：文件名含 `-C`, `-CH`, `-CN`。
+  - 同优先级内按分享日期升序 → 文件大小升序选择。
+  - 兜底：无特殊后缀时选择日期最新且大小最小的。
+- **番号识别扩展**：参考 JavSP 项目，新增支持 15 种番号格式。
+  - FC2, HEYDOUGA, GETCHU, GYUTTO, 259LUXU, MUGEN, IBW
+  - 东热 RED/SKY/EX 系列、TMA、N/K 系列、R18、纯数字无码等。
+- **JavBus AJAX 兼容性**：支持解析无 `<table>` 包裹的纯 `<tr>` 行片段（JavBus AJAX 接口返回格式）。
+
+### Changed
+- `_extract_magnet()` 保持接口不变，内部新增 `_extract_all_magnets()` + `_select_best_magnet()` 逻辑。
+- 优先从 HTML 表格解析全部磁力链接，失败时 fallback 到原有正则提取。
+
+## [0.1.2] - 2026-04-17
 
 ## [0.1.2] - 2026-04-17
 
