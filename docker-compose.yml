@@ -7,6 +7,9 @@ services:
     container_name: av-dm
     restart: unless-stopped
     environment:
+      # 时区设置（确保日志和调度使用正确的时间）
+      - TZ=Asia/Shanghai
+      
       # 基础配置（从 .env 读取）
       - WEB_PORT=${WEB_PORT:-8080}
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/av_downloads.db}
