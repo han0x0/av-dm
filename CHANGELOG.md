@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-20
+
+### Added
+- **Web UI 深色模式（Dark Mode）**：完整支持浅色/深色主题切换。
+  - 顶部 Header 新增 🌙/☀️ 一键切换按钮，切换时带 0.3s 平滑颜色过渡动画。
+  - 深色配色参考 GitHub Dark / Vercel Dark，背景层次：`#0d1117` → `#161b22` → `#21262d`。
+  - 所有 Element Plus 组件（卡片、表格、表单、对话框、抽屉、标签页、分页等）已完整适配深色样式。
+  - 统计卡片采用渐变背景 + 悬停缩放动效，深色模式下更醒目。
+  - 日志终端区支持浅色/深色两套配色方案（浅色 → 浅色终端风格，深色 → VS Code Dark+ 风格）。
+  - 状态标签（StatusBadge）在深色模式下自动使用高饱和度配色，保证可读性。
+  - 登录页深色模式采用深邃渐变背景，与浅色模式的紫渐变形成对比。
+- **主题系统架构**：基于 CSS 变量 + Pinia Store 的主题管理系统。
+  - `web/src/styles/theme.css`：定义浅色/深色两套完整的 CSS 变量，覆盖布局、背景、文字、边框、阴影等。
+  - `web/src/stores/theme.ts`：主题状态管理，支持 localStorage 持久化、系统主题自动检测、实时切换。
+  - 首次访问自动跟随系统主题偏好，手动切换后记住用户选择。
+
+### Changed
+- 侧边栏菜单项增加圆角（`border-radius: 8px`）和间距优化，现代感更强。
+- 统计卡片、磁盘信息卡片、日志卡片统一使用 `border-radius: 12px`，视觉更柔和。
+- `.gitignore` 新增 `web/node_modules/`，防止本地前端依赖误提交。
+
 ## [0.1.3] - 2026-04-19
 
 ### Added
@@ -87,7 +108,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Database**: SQLite with connection pooling.
 - **Deployment**: Docker Compose with multi-service architecture.
 
-[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/han0x0/av-dm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/han0x0/av-dm/releases/tag/v0.2.0
+[0.1.3]: https://github.com/han0x0/av-dm/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/han0x0/av-dm/releases/tag/v0.1.2
 [0.1.1]: https://github.com/han0x0/av-dm/releases/tag/v0.1.1
 [0.1.0]: https://github.com/han0x0/av-dm/releases/tag/v0.1.0

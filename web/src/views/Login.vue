@@ -3,7 +3,9 @@
     <el-card class="login-card" shadow="always">
       <template #header>
         <div class="login-header">
-          <el-icon :size="40" color="#409EFF"><Monitor /></el-icon>
+          <div class="login-icon">
+            <el-icon :size="48" color="var(--dm-sidebar-active-text)"><Monitor /></el-icon>
+          </div>
           <h1>AV Download Manager</h1>
           <p>Web 管理控制台</p>
         </div>
@@ -38,6 +40,17 @@
           </el-button>
         </el-form-item>
       </el-form>
+      
+      <div class="login-footer">
+        <el-button
+          text
+          size="small"
+          :icon="themeStore.isDark() ? Sunny : Moon"
+          @click="themeStore.toggleTheme"
+        >
+          {{ themeStore.isDark() ? '浅色模式' : '深色模式' }}
+        </el-button>
+      </div>
     </el-card>
   </div>
 </template>
@@ -46,11 +59,13 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Lock, Monitor } from '@element-plus/icons-vue'
+import { Lock, Monitor, Sunny, Moon } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const themeStore = useThemeStore()
 const formRef = ref()
 
 const form = reactive({
@@ -68,8 +83,6 @@ const handleLogin = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
 
-  console.log('登录密码长度:', form.password.length)
-  
   try {
     const success = await authStore.login(form.password)
     if (success) {
@@ -91,26 +104,59 @@ const handleLogin = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--dm-login-bg);
+  transition: background 0.3s ease;
 }
 
 .login-card {
-  width: 400px;
+  width: 420px;
   max-width: 90%;
+  border-radius: 16px;
+  background-color: var(--dm-bg-card);
+  border-color: var(--dm-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.login-card :deep(.el-card__header) {
+  border-bottom-color: var(--dm-border);
+  padding: 30px 20px 20px;
 }
 
 .login-header {
   text-align: center;
 }
 
+.login-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: var(--dm-gradient-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
 .login-header h1 {
-  margin: 16px 0 8px;
+  margin: 0 0 8px;
   font-size: 24px;
-  color: #303133;
+  color: var(--dm-text-primary);
+  font-weight: 700;
+  transition: color 0.3s ease;
 }
 
 .login-header p {
-  color: #909399;
+  color: var(--dm-text-secondary);
   font-size: 14px;
+  transition: color 0.3s ease;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dm-border);
+  transition: border-color 0.3s ease;
 }
 </style>

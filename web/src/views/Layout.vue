@@ -2,7 +2,7 @@
   <el-container class="layout-container">
     <el-aside width="220px" class="sidebar">
       <div class="logo">
-        <el-icon :size="28" color="#409EFF"><VideoPlay /></el-icon>
+        <el-icon :size="28" color="var(--dm-sidebar-active-text)"><VideoPlay /></el-icon>
         <span>AV-DM 管理</span>
       </div>
       
@@ -10,9 +10,9 @@
         :default-active="$route.path"
         router
         class="sidebar-menu"
-        background-color="#304156"
-        text-color="#bfcbd9"
-        active-text-color="#409EFF"
+        :background-color="'transparent'"
+        :text-color="'var(--dm-sidebar-text)'"
+        :active-text-color="'var(--dm-sidebar-active-text)'"
       >
         <el-menu-item index="/dashboard">
           <el-icon><Odometer /></el-icon>
@@ -49,9 +49,17 @@
           {{ $route.meta.title || 'AV Download Manager' }}
         </div>
         <div class="header-actions">
-          <el-tag v-if="statsStore.lastUpdate" type="info" size="small">
+          <el-tag v-if="statsStore.lastUpdate" type="info" size="small" effect="plain">
             更新于: {{ formatTime(statsStore.lastUpdate) }}
           </el-tag>
+          <el-tooltip :content="themeStore.isDark() ? '切换到浅色模式' : '切换到深色模式'" placement="bottom">
+            <el-button
+              :icon="themeStore.isDark() ? Sunny : Moon"
+              circle
+              size="small"
+              @click="themeStore.toggleTheme"
+            />
+          </el-tooltip>
           <el-button
             :icon="Refresh"
             circle
@@ -81,13 +89,17 @@ import {
   Setting,
   SwitchButton,
   Refresh,
+  Sunny,
+  Moon,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useStatsStore } from '@/stores/stats'
+import { useThemeStore } from '@/stores/theme'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const statsStore = useStatsStore()
+const themeStore = useThemeStore()
 
 let refreshTimer: number | null = null
 
@@ -135,9 +147,11 @@ onUnmounted(() => {
 }
 
 .sidebar {
-  background-color: #304156;
+  background-color: var(--dm-bg-sidebar);
   display: flex;
   flex-direction: column;
+  border-right: 1px solid var(--dm-border);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .logo {
@@ -146,10 +160,11 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: #fff;
+  color: var(--dm-text-primary);
   font-size: 18px;
   font-weight: bold;
-  border-bottom: 1px solid #1f2d3d;
+  border-bottom: 1px solid var(--dm-border);
+  transition: color 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar-menu {
@@ -157,25 +172,43 @@ onUnmounted(() => {
   border-right: none;
 }
 
+.sidebar-menu :deep(.el-menu-item) {
+  border-radius: 8px;
+  margin: 4px 12px;
+  height: 48px;
+  line-height: 48px;
+}
+
+.sidebar-menu :deep(.el-menu-item.is-active) {
+  font-weight: 600;
+}
+
+.sidebar-menu :deep(.el-menu-item .el-icon) {
+  font-size: 18px;
+}
+
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid #1f2d3d;
+  border-top: 1px solid var(--dm-border);
   text-align: center;
+  transition: border-color 0.3s ease;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  background-color: var(--dm-bg-header);
+  box-shadow: var(--dm-shadow-card);
   z-index: 1;
+  transition: background-color 0.3s ease;
 }
 
 .breadcrumb {
   font-size: 16px;
   font-weight: 500;
-  color: #303133;
+  color: var(--dm-text-primary);
+  transition: color 0.3s ease;
 }
 
 .header-actions {
@@ -185,8 +218,9 @@ onUnmounted(() => {
 }
 
 .main-content {
-  background-color: #f0f2f5;
+  background-color: var(--dm-bg-body);
   padding: 20px;
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 </style>

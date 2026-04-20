@@ -1,15 +1,18 @@
 <template>
-  <el-tag :type="statusType" size="small" effect="light">
+  <el-tag :type="statusType" size="small" :effect="tagEffect" class="status-badge">
     {{ statusText }}
   </el-tag>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useThemeStore } from '@/stores/theme'
 
 const props = defineProps<{
   status: string
 }>()
+
+const themeStore = useThemeStore()
 
 const statusMap: Record<string, { text: string; type: 'success' | 'warning' | 'danger' | 'info' | '' }> = {
   pending: { text: '等待中', type: 'info' },
@@ -30,4 +33,40 @@ const statusText = computed(() => {
 const statusType = computed(() => {
   return statusMap[props.status]?.type || 'info'
 })
+
+const tagEffect = computed(() => {
+  // Dark mode looks better with 'dark' effect on badges
+  return themeStore.isDark() ? 'dark' : 'light'
+})
 </script>
+
+<style scoped>
+.status-badge {
+  font-weight: 500;
+}
+
+/* Dark mode overrides for better contrast */
+:global([data-theme="dark"]) .status-badge.el-tag--success {
+  background-color: #238636;
+  border-color: #238636;
+  color: #ffffff;
+}
+
+:global([data-theme="dark"]) .status-badge.el-tag--warning {
+  background-color: #9e6a03;
+  border-color: #9e6a03;
+  color: #ffffff;
+}
+
+:global([data-theme="dark"]) .status-badge.el-tag--danger {
+  background-color: #da3633;
+  border-color: #da3633;
+  color: #ffffff;
+}
+
+:global([data-theme="dark"]) .status-badge.el-tag--info {
+  background-color: #484f58;
+  border-color: #484f58;
+  color: #e6edf3;
+}
+</style>

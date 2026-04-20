@@ -1,15 +1,15 @@
 <template>
   <div class="logs-page">
-    <el-card shadow="hover">
+    <el-card shadow="hover" class="logs-card">
       <template #header>
         <div class="card-header">
-          <span>日志查看</span>
+          <span class="page-title">日志查看</span>
           <div class="header-actions">
             <el-select
               v-model="levelFilter"
               placeholder="日志级别"
               clearable
-              style="width: 120px;"
+              style="width: 130px;"
             >
               <el-option label="全部" value="" />
               <el-option label="INFO" value="INFO" />
@@ -21,7 +21,7 @@
             <el-input
               v-model="searchQuery"
               placeholder="搜索关键字..."
-              style="width: 200px;"
+              style="width: 220px;"
               clearable
               @keyup.enter="refreshLogs"
             >
@@ -157,6 +157,17 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.logs-card {
+  border-radius: 12px;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dm-text-primary);
+  transition: color 0.3s ease;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -171,50 +182,58 @@ onUnmounted(() => {
 .log-container {
   max-height: 600px;
   overflow-y: auto;
-  font-family: 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.6;
-  background-color: #1e1e1e;
-  color: #d4d4d4;
-  padding: 12px;
-  border-radius: 4px;
+  line-height: 1.7;
+  background-color: var(--dm-log-bg);
+  color: var(--dm-log-text);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--dm-border);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .log-line {
-  padding: 2px 0;
+  padding: 3px 0;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .log-time {
-  color: #858585;
-  margin-right: 8px;
+  color: var(--dm-log-time);
+  margin-right: 10px;
+  font-size: 12px;
+  transition: color 0.3s ease;
 }
 
 .log-level {
   font-weight: bold;
-  margin-right: 8px;
+  margin-right: 10px;
+  font-size: 12px;
+  transition: color 0.3s ease;
 }
 
 .level-info .log-level {
-  color: #4fc1ff;
+  color: var(--dm-log-info);
 }
 
 .level-warning .log-level {
-  color: #ffcc00;
+  color: var(--dm-log-warning);
 }
 
 .level-error .log-level {
-  color: #f48771;
+  color: var(--dm-log-error);
 }
 
 .level-debug .log-level {
-  color: #b5cea8;
+  color: var(--dm-log-debug);
 }
 
 .log-module {
-  color: #9cdcfe;
-  margin-right: 8px;
+  color: var(--dm-log-module);
+  margin-right: 10px;
+  font-size: 12px;
+  transition: color 0.3s ease;
 }
 
 .pagination-wrapper {

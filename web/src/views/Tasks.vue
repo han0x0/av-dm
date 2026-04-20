@@ -1,14 +1,14 @@
 <template>
   <div class="tasks-page">
-    <el-card shadow="hover">
+    <el-card shadow="hover" class="tasks-card">
       <template #header>
         <div class="card-header">
-          <span>任务管理</span>
+          <span class="page-title">任务管理</span>
           <div class="header-actions">
             <el-input
               v-model="searchQuery"
               placeholder="搜索番号..."
-              style="width: 200px;"
+              style="width: 220px;"
               clearable
               @keyup.enter="handleSearch"
             >
@@ -21,7 +21,7 @@
               v-model="statusFilter"
               placeholder="状态筛选"
               clearable
-              style="width: 120px;"
+              style="width: 130px;"
             >
               <el-option label="全部" value="" />
               <el-option label="等待中" value="pending" />
@@ -43,43 +43,45 @@
         :data="tasksStore.tasks"
         stripe
         style="width: 100%"
+        class="tasks-table"
       >
         <el-table-column prop="content_id" label="番号" width="140" sortable>
           <template #default="{ row }">
-            <el-link type="primary" @click="showDetail(row)">
-              {{ row.content_id }}
+            <el-link type="primary" @click="showDetail(row)" :underline="false">
+              <el-tag size="small" effect="plain" type="info">{{ row.content_id }}</el-tag>
             </el-link>
           </template>
         </el-table-column>
         
         <el-table-column prop="content_title" label="标题" min-width="200" show-overflow-tooltip />
         
-        <el-table-column prop="status" label="状态" width="110">
+        <el-table-column prop="status" label="状态" width="120">
           <template #default="{ row }">
             <StatusBadge :status="row.status" />
           </template>
         </el-table-column>
         
-        <el-table-column prop="progress" label="进度" width="120">
+        <el-table-column prop="progress" label="进度" width="140">
           <template #default="{ row }">
             <el-progress
               v-if="row.progress !== null"
               :percentage="Math.round(row.progress / 10)"
               :status="getProgressStatus(row)"
+              :stroke-width="8"
             />
-            <span v-else>-</span>
+            <span v-else class="text-muted">-</span>
           </template>
         </el-table-column>
         
         <el-table-column prop="file_size" label="大小" width="100">
           <template #default="{ row }">
-            {{ row.file_size ? formatSize(row.file_size) : '-' }}
+            <span class="text-secondary">{{ row.file_size ? formatSize(row.file_size) : '-' }}</span>
           </template>
         </el-table-column>
         
         <el-table-column prop="created_at" label="创建时间" width="170">
           <template #default="{ row }">
-            {{ formatDateTime(row.created_at) }}
+            <span class="text-muted">{{ formatDateTime(row.created_at) }}</span>
           </template>
         </el-table-column>
         
@@ -133,6 +135,7 @@
       v-model="detailVisible"
       title="任务详情"
       size="500px"
+      class="task-drawer"
     >
       <TaskDetail v-if="selectedTask" :task="selectedTask" />
     </el-drawer>
@@ -140,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTasksStore } from '@/stores/tasks'
@@ -252,6 +255,17 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.tasks-card {
+  border-radius: 12px;
+}
+
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dm-text-primary);
+  transition: color 0.3s ease;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -263,9 +277,23 @@ onMounted(() => {
   gap: 12px;
 }
 
+.text-secondary {
+  color: var(--dm-text-secondary);
+  transition: color 0.3s ease;
+}
+
+.text-muted {
+  color: var(--dm-text-muted);
+  transition: color 0.3s ease;
+}
+
 .pagination-wrapper {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+.tasks-table :deep(.el-progress__text) {
+  color: var(--dm-text-secondary);
 }
 </style>

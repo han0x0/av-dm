@@ -1,0 +1,444 @@
+/* ============================================
+   AV-DM Theme System - CSS Variables
+   Supports light/dark mode switching
+   ============================================ */
+
+/* ---- Light Mode (Default) ---- */
+:root {
+  /* Background Layers */
+  --dm-bg-body: #f0f2f5;
+  --dm-bg-sidebar: #ffffff;
+  --dm-bg-card: #ffffff;
+  --dm-bg-header: #ffffff;
+  --dm-bg-input: #ffffff;
+  --dm-bg-hover: #f5f7fa;
+  --dm-bg-elevated: #ffffff;
+
+  /* Text Colors */
+  --dm-text-primary: #303133;
+  --dm-text-secondary: #606266;
+  --dm-text-muted: #909399;
+  --dm-text-on-primary: #ffffff;
+
+  /* Border & Divider */
+  --dm-border: #e4e7ed;
+  --dm-border-light: #ebeef5;
+  --dm-divider: #dcdfe6;
+
+  /* Sidebar */
+  --dm-sidebar-text: #606266;
+  --dm-sidebar-active-bg: #ecf5ff;
+  --dm-sidebar-active-text: #409eff;
+  --dm-sidebar-hover-bg: #f5f7fa;
+
+  /* Shadow */
+  --dm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --dm-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --dm-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --dm-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.08);
+
+  /* Status Colors (custom override for dark harmony) */
+  --dm-success: #67c23a;
+  --dm-warning: #e6a23c;
+  --dm-danger: #f56c6c;
+  --dm-info: #409eff;
+
+  /* Gradient Presets */
+  --dm-gradient-blue: linear-gradient(135deg, #409eff 0%, #53a8ff 100%);
+  --dm-gradient-green: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  --dm-gradient-orange: linear-gradient(135deg, #e6a23c 0%, #ebb563 100%);
+  --dm-gradient-red: linear-gradient(135deg, #f56c6c 0%, #f78989 100%);
+  --dm-gradient-purple: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* Login */
+  --dm-login-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  /* Logs (light mode terminal) */
+  --dm-log-bg: #fafafa;
+  --dm-log-text: #333333;
+  --dm-log-time: #858585;
+  --dm-log-module: #007acc;
+  --dm-log-info: #007acc;
+  --dm-log-warning: #d4a017;
+  --dm-log-error: #d73a49;
+  --dm-log-debug: #22863a;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="dark"] {
+  /* Background Layers - GitHub Dark inspired */
+  --dm-bg-body: #0d1117;
+  --dm-bg-sidebar: #161b22;
+  --dm-bg-card: #161b22;
+  --dm-bg-header: #161b22;
+  --dm-bg-input: #21262d;
+  --dm-bg-hover: #21262d;
+  --dm-bg-elevated: #21262d;
+
+  /* Text Colors */
+  --dm-text-primary: #e6edf3;
+  --dm-text-secondary: #7d8590;
+  --dm-text-muted: #484f58;
+  --dm-text-on-primary: #ffffff;
+
+  /* Border & Divider */
+  --dm-border: #30363d;
+  --dm-border-light: #21262d;
+  --dm-divider: #30363d;
+
+  /* Sidebar */
+  --dm-sidebar-text: #7d8590;
+  --dm-sidebar-active-bg: #21262d;
+  --dm-sidebar-active-text: #58a6ff;
+  --dm-sidebar-hover-bg: #1c2128;
+
+  /* Shadow - softer in dark mode */
+  --dm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --dm-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --dm-shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+  --dm-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.3);
+
+  /* Status Colors - brighter for dark backgrounds */
+  --dm-success: #3fb950;
+  --dm-warning: #d29922;
+  --dm-danger: #f85149;
+  --dm-info: #58a6ff;
+
+  /* Gradient Presets - more saturated for dark */
+  --dm-gradient-blue: linear-gradient(135deg, #1f6feb 0%, #58a6ff 100%);
+  --dm-gradient-green: linear-gradient(135deg, #238636 0%, #3fb950 100%);
+  --dm-gradient-orange: linear-gradient(135deg, #9e6a03 0%, #d29922 100%);
+  --dm-gradient-red: linear-gradient(135deg, #da3633 0%, #f85149 100%);
+  --dm-gradient-purple: linear-gradient(135deg, #8957e5 0%, #a371f7 100%);
+
+  /* Login */
+  --dm-login-bg: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+
+  /* Logs (dark mode terminal - VS Code Dark+ inspired) */
+  --dm-log-bg: #0d1117;
+  --dm-log-text: #d4d4d4;
+  --dm-log-time: #6e7681;
+  --dm-log-module: #9cdcfe;
+  --dm-log-info: #4fc1ff;
+  --dm-log-warning: #ffcc00;
+  --dm-log-error: #f48771;
+  --dm-log-debug: #b5cea8;
+}
+
+/* ============================================
+   Global Theme Overrides
+   ============================================ */
+
+/* Body & App background */
+#app,
+body {
+  background-color: var(--dm-bg-body);
+  color: var(--dm-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Layout container */
+.layout-container {
+  background-color: var(--dm-bg-body);
+}
+
+/* Sidebar */
+.sidebar {
+  background-color: var(--dm-bg-sidebar) !important;
+  border-right: 1px solid var(--dm-border);
+}
+
+.sidebar .logo {
+  color: var(--dm-text-primary);
+  border-bottom: 1px solid var(--dm-border);
+}
+
+.sidebar-menu {
+  background-color: var(--dm-bg-sidebar) !important;
+}
+
+.sidebar-menu .el-menu-item {
+  color: var(--dm-sidebar-text) !important;
+}
+
+.sidebar-menu .el-menu-item:hover {
+  background-color: var(--dm-sidebar-hover-bg) !important;
+}
+
+.sidebar-menu .el-menu-item.is-active {
+  color: var(--dm-sidebar-active-text) !important;
+  background-color: var(--dm-sidebar-active-bg) !important;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--dm-border);
+}
+
+/* Header */
+.header {
+  background-color: var(--dm-bg-header) !important;
+  box-shadow: var(--dm-shadow-card);
+}
+
+.breadcrumb {
+  color: var(--dm-text-primary);
+}
+
+/* Main content */
+.main-content {
+  background-color: var(--dm-bg-body) !important;
+}
+
+/* Cards */
+.el-card {
+  background-color: var(--dm-bg-card) !important;
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text-primary) !important;
+}
+
+.el-card__header {
+  border-bottom-color: var(--dm-border) !important;
+  color: var(--dm-text-primary);
+}
+
+/* Tables */
+.el-table {
+  background-color: transparent !important;
+  color: var(--dm-text-primary) !important;
+}
+
+.el-table th.el-table__cell {
+  background-color: var(--dm-bg-hover) !important;
+  color: var(--dm-text-primary) !important;
+}
+
+.el-table td.el-table__cell {
+  background-color: transparent !important;
+  border-bottom-color: var(--dm-border) !important;
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background-color: var(--dm-bg-hover) !important;
+}
+
+.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell {
+  background-color: var(--dm-bg-hover) !important;
+}
+
+.el-table__empty-block {
+  background-color: transparent !important;
+}
+
+/* Form Inputs */
+.el-input__wrapper {
+  background-color: var(--dm-bg-input) !important;
+  box-shadow: 0 0 0 1px var(--dm-border) inset !important;
+}
+
+.el-input__inner {
+  color: var(--dm-text-primary) !important;
+}
+
+.el-input__inner::placeholder {
+  color: var(--dm-text-muted) !important;
+}
+
+/* Select */
+.el-select .el-input__wrapper {
+  background-color: var(--dm-bg-input) !important;
+}
+
+.el-select-dropdown__item {
+  color: var(--dm-text-primary) !important;
+}
+
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background-color: var(--dm-bg-hover) !important;
+}
+
+/* Dialog & Drawer */
+.el-dialog {
+  background-color: var(--dm-bg-card) !important;
+}
+
+.el-dialog__title {
+  color: var(--dm-text-primary) !important;
+}
+
+.el-dialog__body {
+  color: var(--dm-text-secondary) !important;
+}
+
+.el-drawer {
+  background-color: var(--dm-bg-card) !important;
+}
+
+.el-drawer__header {
+  color: var(--dm-text-primary) !important;
+  border-bottom-color: var(--dm-border) !important;
+}
+
+/* Tabs */
+.el-tabs--border-card {
+  background-color: var(--dm-bg-card) !important;
+  border-color: var(--dm-border) !important;
+}
+
+.el-tabs--border-card > .el-tabs__header {
+  background-color: var(--dm-bg-hover) !important;
+  border-bottom-color: var(--dm-border) !important;
+}
+
+.el-tabs--border-card > .el-tabs__header .el-tabs__item {
+  color: var(--dm-text-secondary) !important;
+}
+
+.el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+  color: var(--dm-sidebar-active-text) !important;
+  background-color: var(--dm-bg-card) !important;
+  border-right-color: var(--dm-border) !important;
+  border-left-color: var(--dm-border) !important;
+}
+
+/* Descriptions */
+.el-descriptions__body {
+  background-color: var(--dm-bg-card) !important;
+}
+
+.el-descriptions__label.el-descriptions__cell.is-bordered-label {
+  background-color: var(--dm-bg-hover) !important;
+  color: var(--dm-text-secondary) !important;
+  border-color: var(--dm-border) !important;
+}
+
+.el-descriptions__cell {
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text-primary) !important;
+}
+
+/* Pagination */
+.el-pagination button {
+  background-color: transparent !important;
+  color: var(--dm-text-secondary) !important;
+}
+
+.el-pagination .el-pager li {
+  background-color: transparent !important;
+  color: var(--dm-text-secondary) !important;
+}
+
+.el-pagination .el-pager li.is-active {
+  color: var(--dm-info) !important;
+}
+
+/* Progress */
+.el-progress__text {
+  color: var(--dm-text-secondary) !important;
+}
+
+/* Divider */
+.el-divider__text {
+  background-color: var(--dm-bg-card) !important;
+  color: var(--dm-text-secondary) !important;
+}
+
+.el-divider {
+  border-color: var(--dm-border) !important;
+}
+
+/* Empty state */
+.el-empty__description {
+  color: var(--dm-text-muted) !important;
+}
+
+/* Dropdown */
+.el-dropdown-menu {
+  background-color: var(--dm-bg-elevated) !important;
+  border-color: var(--dm-border) !important;
+}
+
+.el-dropdown-menu__item {
+  color: var(--dm-text-primary) !important;
+}
+
+.el-dropdown-menu__item:hover {
+  background-color: var(--dm-bg-hover) !important;
+}
+
+/* Popover / Tooltip */
+.el-popover {
+  background-color: var(--dm-bg-elevated) !important;
+  border-color: var(--dm-border) !important;
+  color: var(--dm-text-primary) !important;
+}
+
+/* Message Box */
+.el-message-box {
+  background-color: var(--dm-bg-card) !important;
+  border-color: var(--dm-border) !important;
+}
+
+.el-message-box__title {
+  color: var(--dm-text-primary) !important;
+}
+
+.el-message-box__message {
+  color: var(--dm-text-secondary) !important;
+}
+
+/* Alert */
+.el-alert {
+  background-color: var(--dm-bg-hover) !important;
+}
+
+/* Loading mask */
+[data-theme="dark"] .el-loading-mask {
+  background-color: rgba(13, 17, 23, 0.7) !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #30363d;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+/* Smooth transitions for theme switching */
+.sidebar,
+.header,
+.el-card,
+.el-dialog,
+.el-drawer,
+.el-input__wrapper,
+.el-table th,
+.el-table td,
+.el-tabs--border-card,
+.el-descriptions__body,
+.el-descriptions__label,
+.el-pagination button,
+.el-pagination .el-pager li,
+.el-dropdown-menu,
+.el-message-box {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease !important;
+}

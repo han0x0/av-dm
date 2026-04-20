@@ -1123,17 +1123,17 @@ onMounted(() => {
 }
 
 .service-card {
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border: 1px solid var(--dm-border);
+  border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
-  background: #f5f7fa;
+  background: var(--dm-bg-hover);
   transition: all 0.3s;
 }
 
 .service-card.configured {
-  background: #f0f9ff;
-  border-color: #409eff;
+  background: var(--dm-sidebar-active-bg);
+  border-color: var(--dm-sidebar-active-text);
 }
 
 .service-header {
@@ -1149,14 +1149,14 @@ onMounted(() => {
 }
 
 .service-url {
-  color: #606266;
+  color: var(--dm-text-secondary);
   font-size: 12px;
   word-break: break-all;
   margin-bottom: 4px;
 }
 
 .service-detail {
-  color: #909399;
+  color: var(--dm-text-muted);
   font-size: 12px;
   margin-bottom: 12px;
 }
@@ -1167,7 +1167,7 @@ onMounted(() => {
 }
 
 .form-hint {
-  color: #909399;
+  color: var(--dm-text-muted);
   font-size: 12px;
   margin-top: 4px;
   display: flex;
@@ -1182,7 +1182,7 @@ onMounted(() => {
 
 :deep(.el-divider__text) {
   font-size: 12px;
-  color: #909399;
+  color: var(--dm-text-muted);
 }
 
 :deep(.services-dialog .el-dialog__body) {
@@ -1191,11 +1191,21 @@ onMounted(() => {
 
 .password-eye {
   cursor: pointer;
-  color: #909399;
+  color: var(--dm-text-muted);
   transition: color 0.3s;
 }
 
 .password-eye:hover {
-  color: #409eff;
+  color: var(--dm-sidebar-active-text);
+}
+
+.settings-page .el-card {
+  border-radius: 12px;
+}
+
+.settings-page .service-name {
+  color: var(--dm-text-primary);
+  font-weight: 600;
+  transition: color 0.3s ease;
 }
 </style>
