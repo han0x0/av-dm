@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-21
+
+### Added
+- **磁力链接种子文件自动获取**：通过 `itorrents.org` 在线缓存服务自动获取 `.torrent` 文件。
+  - 支持本地缓存（`data/torrents/`），避免重复请求。
+  - 备选 `libtorrent` P2P 获取（在线缓存失败时）。
+- **广告文件智能过滤**：创建任务时自动过滤广告文件。
+  - 禁用非视频扩展名（.url / .html / .txt / .apk / .chm / .zip / .exe）。
+  - 禁用小视频文件（< 100MB 的广告视频）。
+  - 保留主视频和所有 VR 多分卷视频（PART1/2/3、-A/-B/-C 等）。
+- **BitComet API 扩展**：新增 `get_task_files()` 和 `set_file_priority()` 接口。
+- **Workflow 1 增强**：下载流程改为"磁力链接 → 获取种子 → 过滤广告 → 创建任务 → 设置优先级"。
+
+### Changed
+- `BitCometClient.add_task()` 支持 `torrent_file` 参数。
+- 新增依赖 `libtorrent>=2.0.0`。
+
 ## [0.2.0] - 2026-04-20
 
 ### Added

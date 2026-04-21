@@ -19,6 +19,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.services import FreshRSSClient, BitCometClient
+from app.services.torrent_service import TorrentService
 from app.database import get_db_session, DownloadRecord
 from app.config import settings
 from app.logger import logger, log_workflow_start, log_workflow_end, log_task_started, log_task_error
@@ -38,6 +39,7 @@ class DownloadWorkflow:
     def __init__(self):
         self.freshrss = FreshRSSClient()
         self.bitcomet = BitCometClient()
+        self.torrent_service = TorrentService()
         
     async def __aenter__(self):
         await self.freshrss.connect()
@@ -47,6 +49,7 @@ class DownloadWorkflow:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.freshrss.close()
         await self.bitcomet.close()
+        self.torrent_service.close()
     
     async def run(self) -> dict:
         """
@@ -229,7 +232,7 @@ class DownloadWorkflow:
             logger.warning(f"标签更新失败: {e}")
     
     async def _handle_new_task(self, item, db: Session, stats: dict, is_retry: bool = False):
-        """处理新任务 - 尝试 BitComet 下载"""
+        """处理新任务 - 尝试 BitComet 下载（支持广告过滤）"""
         content_id = item.uid
         item_id = item.item_id
         
@@ -238,12 +241,47 @@ class DownloadWorkflow:
             if not self.bitcomet._device_token:
                 await self.bitcomet.login()
             
-            # 添加 BitComet 任务
             save_folder = settings.bitcomet_download_path
-            task_id = await self.bitcomet.add_task(
-                magnet_url=item.magnet_url,
-                save_path=save_folder
-            )
+            task_id = None
+            task_guid = None
+            used_torrent_file = False
+            files_to_disable = []
+            
+            # ===== 新流程：尝试获取 .torrent 文件并过滤广告 =====
+            try:
+                logger.debug(f"[{content_id}] 尝试获取 .torrent 文件...")
+                torrent_result = await self.torrent_service.fetch_and_filter(item.magnet_url)
+                
+                if torrent_result and torrent_result.torrent_base64:
+                    logger.info(
+                        f"[{content_id}] .torrent 获取成功 ({torrent_result.source}), "
+                        f"文件数: {len(torrent_result.files)}, "
+                        f"禁用: {len(torrent_result.files_to_disable)} 个"
+                    )
+                    
+                    # 用 .torrent 文件创建任务
+                    task_id = await self.bitcomet.add_task(
+                        torrent_file=torrent_result.torrent_base64,
+                        save_path=save_folder,
+                        start_later=False,
+                    )
+                    
+                    if task_id:
+                        used_torrent_file = True
+                        files_to_disable = torrent_result.files_to_disable
+                        logger.info(f"[{content_id}] 使用 torrent_file 创建任务成功: {task_id}")
+                else:
+                    logger.debug(f"[{content_id}] .torrent 获取失败，将回退到磁力链接")
+            except Exception as e:
+                logger.warning(f"[{content_id}] .torrent 获取异常: {e}")
+            
+            # ===== 回退：使用磁力链接直接创建任务 =====
+            if not task_id:
+                task_id = await self.bitcomet.add_task(
+                    magnet_url=item.magnet_url,
+                    save_path=save_folder
+                )
+                logger.info(f"[{content_id}] 使用磁力链接创建任务: {task_id}")
             
             if not task_id:
                 log_task_error(content_id, "BitComet添加失败")
@@ -254,16 +292,36 @@ class DownloadWorkflow:
             log_task_started(content_id)
             
             # 获取 task_guid
-            task_guid = None
             try:
-                await asyncio.sleep(1)  # 等待任务创建完成
+                await asyncio.sleep(1)
                 task_list = await self.bitcomet.get_task_list()
                 for task in task_list:
                     if task.task_id == task_id:
                         task_guid = task.task_guid
                         break
             except Exception as e:
-                logger.warning(f"  ⚠️  获取 task_guid 失败: {e}")
+                logger.warning(f"[{content_id}] 获取 task_guid 失败: {e}")
+            
+            # ===== 如果使用了 .torrent，设置广告文件优先级 =====
+            if used_torrent_file and files_to_disable:
+                try:
+                    # 等待 BitComet 初始化文件列表
+                    await asyncio.sleep(2)
+                    
+                    success = await self.bitcomet.set_file_priority(
+                        task_id=task_id,
+                        file_indexes=files_to_disable,
+                        priority="disabled"
+                    )
+                    
+                    if success:
+                        logger.info(
+                            f"[{content_id}] 已禁用 {len(files_to_disable)} 个广告文件"
+                        )
+                    else:
+                        logger.warning(f"[{content_id}] 广告文件禁用失败")
+                except Exception as e:
+                    logger.warning(f"[{content_id}] 设置文件优先级异常: {e}")
             
             # 写入数据库
             record = DownloadRecord(
@@ -282,7 +340,7 @@ class DownloadWorkflow:
             db.commit()
             logger.debug(f"数据库记录: id={record.id}")
             
-            # 关键步骤：处理标签
+            # 处理标签
             if is_retry:
                 await self._handle_retry_success_tags(item_id)
                 stats["retry_success"] += 1

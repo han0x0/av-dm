@@ -22,6 +22,9 @@ pyyaml>=6.0.0
 loguru>=0.7.0
 tenacity>=8.2.0
 
+# Torrent metadata fetching
+libtorrent>=2.0.0
+
 # Optional CLI
 click>=8.1.0
 

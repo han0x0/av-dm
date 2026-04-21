@@ -228,10 +228,22 @@ class BitCometClient(BaseHTTPClient):
         
         return [BitCometTask.from_api_response(task) for task in tasks]
     
-    async def add_task(self, magnet_url: str, save_path: Optional[str] = None) -> Optional[int]:
+    async def add_task(
+        self,
+        magnet_url: Optional[str] = None,
+        torrent_file: Optional[str] = None,
+        save_path: Optional[str] = None,
+        start_later: bool = False,
+    ) -> Optional[int]:
         """
-        添加 BT 任务（磁力链接）
+        添加 BT 任务
         POST /api/task/bt/add
+        
+        Args:
+            magnet_url: 磁力链接（与 torrent_file 二选一）
+            torrent_file: base64 编码的 .torrent 文件内容（与 magnet_url 二选一）
+            save_path: 保存路径
+            start_later: 是否稍后启动
         """
         await self.ensure_logged_in()
         
@@ -241,12 +253,18 @@ class BitCometClient(BaseHTTPClient):
         # 确定保存路径
         actual_save_path = save_path or settings.bitcomet_download_path
         
+        # 参数校验
+        magnet = magnet_url or ""
+        torrent = torrent_file or ""
+        if not magnet and not torrent:
+            raise ValueError("magnet_url 和 torrent_file 不能同时为空")
+        
         # BitComet API 参数格式
         data = {
-            "torrent_url": magnet_url,
+            "torrent_url": magnet,
             "save_folder": actual_save_path,
-            "start_later": False,
-            "torrent_file": "",
+            "start_later": start_later,
+            "torrent_file": torrent,
         }
         
         # 详细调试日志
@@ -348,6 +366,72 @@ class BitCometClient(BaseHTTPClient):
             logger.warning(f"删除任务失败: {result}")
         
         return success
+    
+    async def get_task_files(self, task_id: int) -> List[Dict[str, any]]:
+        """
+        获取任务文件列表
+        POST /api/task/files/get
+        
+        Returns:
+            文件列表，每个文件包含 index, name, size, priority 等字段
+        """
+        await self.ensure_logged_in()
+        
+        url = "/api/task/files/get"
+        headers = self._get_auth_headers()
+        
+        response = await self.post(url, headers=headers, json={"task_id": str(task_id)})
+        result = response.json()
+        
+        if result.get("error_code") != "ok":
+            logger.warning(f"获取文件列表失败: {result}")
+            return []
+        
+        files = result.get("files", [])
+        logger.debug(f"获取到 {len(files)} 个文件")
+        return files
+    
+    async def set_file_priority(self, task_id: int, file_indexes: List[int], priority: str = "disabled") -> bool:
+        """
+        设置文件下载优先级
+        POST /api/task/files/set_priority
+        
+        Args:
+            task_id: 任务ID
+            file_indexes: 文件索引列表
+            priority: 优先级，可选值: "very_high", "high", "normal", "disabled"
+        
+        Returns:
+            是否设置成功
+        """
+        await self.ensure_logged_in()
+        
+        if not file_indexes:
+            return True
+        
+        url = "/api/task/files/set_priority"
+        headers = self._get_auth_headers()
+        
+        data = {
+            "task_id": str(task_id),
+            "file_indexes": file_indexes,
+            "priority": priority,
+        }
+        
+        try:
+            response = await self.post(url, headers=headers, json=data)
+            result = response.json()
+            
+            success = result.get("error_code") == "OK"
+            if success:
+                logger.info(f"成功设置 {len(file_indexes)} 个文件的优先级为 {priority}")
+            else:
+                logger.warning(f"设置优先级失败: {result}")
+            
+            return success
+        except Exception as e:
+            logger.warning(f"设置优先级异常: {e}")
+            return False
     
     async def find_task(self, task_id: int) -> Optional[BitCometTask]:
         """根据 task_id 查找任务"""
