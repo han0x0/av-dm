@@ -61,76 +61,6 @@
   </el-container>
 </template>
 
-<script lang="ts">
-// 侧边栏内容子组件（复用）
-import { defineComponent, h } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  VideoPlay, Odometer, List, Document, Setting, SwitchButton,
-} from '@element-plus/icons-vue'
-import { useAuthStore } from '@/stores/auth'
-
-export const SidebarContent = defineComponent({
-  name: 'SidebarContent',
-  emits: ['navigate'],
-  setup(_, { emit }) {
-    const router = useRouter()
-    const authStore = useAuthStore()
-
-    const handleLogout = async () => {
-      try {
-        await ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
-        await authStore.logout()
-        router.push('/login')
-        ElMessage.success('已退出登录')
-      } catch {
-        // cancel
-      }
-    }
-
-    return () => h('div', { class: 'sidebar-inner' }, [
-      h('div', { class: 'logo' }, [
-        h('el-icon', { size: 28, color: 'var(--dm-sidebar-active-text)' }, [h(VideoPlay)]),
-        h('span', {}, 'AV-DM 管理'),
-      ]),
-      h('el-menu', {
-        defaultActive: router.currentRoute.value.path,
-        router: true,
-        class: 'sidebar-menu',
-        backgroundColor: 'transparent',
-        textColor: 'var(--dm-sidebar-text)',
-        activeTextColor: 'var(--dm-sidebar-active-text)',
-        onSelect: () => emit('navigate'),
-      }, [
-        h('el-menu-item', { index: '/dashboard' }, [
-          h('el-icon', {}, [h(Odometer)]),
-          h('span', {}, '概览'),
-        ]),
-        h('el-menu-item', { index: '/tasks' }, [
-          h('el-icon', {}, [h(List)]),
-          h('span', {}, '任务管理'),
-        ]),
-        h('el-menu-item', { index: '/logs' }, [
-          h('el-icon', {}, [h(Document)]),
-          h('span', {}, '日志查看'),
-        ]),
-        h('el-menu-item', { index: '/settings' }, [
-          h('el-icon', {}, [h(Setting)]),
-          h('span', {}, '系统设置'),
-        ]),
-      ]),
-      h('div', { class: 'sidebar-footer' }, [
-        h('el-button', { type: 'danger', text: true, onClick: handleLogout }, [
-          h('el-icon', {}, [h(SwitchButton)]),
-          ' 退出登录',
-        ]),
-      ]),
-    ])
-  },
-})
-</script>
-
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
@@ -139,7 +69,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useStatsStore } from '@/stores/stats'
 import { useThemeStore } from '@/stores/theme'
-import { SidebarContent } from './Layout.vue'
+import SidebarContent from '@/components/SidebarContent.vue'
 
 const router = useRouter()
 const statsStore = useStatsStore()
@@ -186,52 +116,6 @@ onUnmounted(() => {
   flex-direction: column;
   border-right: 1px solid var(--dm-border);
   transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-.sidebar-inner {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.logo {
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--dm-text-primary);
-  font-size: 18px;
-  font-weight: bold;
-  border-bottom: 1px solid var(--dm-border);
-  transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-.sidebar-menu {
-  flex: 1;
-  border-right: none;
-}
-
-.sidebar-menu :deep(.el-menu-item) {
-  border-radius: 8px;
-  margin: 4px 12px;
-  height: 48px;
-  line-height: 48px;
-}
-
-.sidebar-menu :deep(.el-menu-item.is-active) {
-  font-weight: 600;
-}
-
-.sidebar-menu :deep(.el-menu-item .el-icon) {
-  font-size: 18px;
-}
-
-.sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid var(--dm-border);
-  text-align: center;
-  transition: border-color 0.3s ease;
 }
 
 .header {

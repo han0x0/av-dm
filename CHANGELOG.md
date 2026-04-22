@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-22
+
+### Fixed
+- **修复侧边栏图标过大且无法点击的问题**：上次移动端适配中将 `SidebarContent` 改为 `h()` 函数式渲染，导致 `el-icon`、`el-menu`、`el-menu-item` 等 Element Plus 组件被 Vue 3 当作原生 HTML 标签处理而非组件，造成图标失去样式控制（显示过大）且菜单点击/路由导航完全失效。将 `SidebarContent` 提取为独立的 `.vue` 单文件组件，恢复 `<template>` 语法，由 Vue 编译器自动 `resolveComponent`。
+
 ## [0.4.0] - 2026-04-22
 
 ### Added
