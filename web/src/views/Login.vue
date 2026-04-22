@@ -15,6 +15,7 @@
         ref="formRef"
         :model="form"
         :rules="rules"
+        @submit.prevent
         @keyup.enter="handleLogin"
       >
         <el-form-item prop="password">
