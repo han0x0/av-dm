@@ -1122,6 +1122,14 @@ onMounted(() => {
   align-items: center;
 }
 
+@media (max-width: 768px) {
+  .settings-page .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
 .service-card {
   border: 1px solid var(--dm-border);
   border-radius: 12px;

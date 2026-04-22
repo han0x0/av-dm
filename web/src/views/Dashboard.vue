@@ -93,29 +93,31 @@
               <span><el-icon><Connection /></el-icon> 工作流状态</span>
             </div>
           </template>
-          <el-table :data="workflows" size="small" class="workflow-table">
-            <el-table-column prop="display_name" label="工作流" />
-            <el-table-column prop="interval" label="执行间隔" width="120" />
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'running' ? 'success' : 'info'" size="small" effect="dark">
-                  {{ row.status === 'running' ? '运行中' : '已停止' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100" align="center">
-              <template #default="{ row }">
-                <el-button
-                  link
-                  type="primary"
-                  size="small"
-                  @click="triggerWorkflow(row.name)"
-                >
-                  执行
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-scroll-wrapper">
+            <el-table :data="workflows" size="small" class="workflow-table">
+              <el-table-column prop="display_name" label="工作流" />
+              <el-table-column prop="interval" label="执行间隔" width="120" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag :type="row.status === 'running' ? 'success' : 'info'" size="small" effect="dark">
+                    {{ row.status === 'running' ? '运行中' : '已停止' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="{ row }">
+                  <el-button
+                    link
+                    type="primary"
+                    size="small"
+                    @click="triggerWorkflow(row.name)"
+                  >
+                    执行
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -132,25 +134,27 @@
               </el-button>
             </div>
           </template>
-          <el-table :data="recentActivities" size="small" class="activity-table">
-            <el-table-column prop="content_id" label="番号" width="150">
-              <template #default="{ row }">
-                <el-tag size="small" effect="plain" type="info">{{ row.content_id }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="action" label="操作" width="100" />
-            <el-table-column prop="status" label="状态" width="120">
-              <template #default="{ row }">
-                <StatusBadge :status="row.status" />
-              </template>
-            </el-table-column>
-            <el-table-column prop="message" label="消息" show-overflow-tooltip />
-            <el-table-column prop="created_at" label="时间" width="180">
-              <template #default="{ row }">
-                {{ formatDateTime(row.created_at) }}
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-scroll-wrapper">
+            <el-table :data="recentActivities" size="small" class="activity-table">
+              <el-table-column prop="content_id" label="番号" width="150">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain" type="info">{{ row.content_id }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="action" label="操作" width="100" />
+              <el-table-column prop="status" label="状态" width="120">
+                <template #default="{ row }">
+                  <StatusBadge :status="row.status" />
+                </template>
+              </el-table-column>
+              <el-table-column prop="message" label="消息" show-overflow-tooltip />
+              <el-table-column prop="created_at" label="时间" width="180">
+                <template #default="{ row }">
+                  {{ formatDateTime(row.created_at) }}
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -304,11 +308,37 @@ const triggerWorkflow = async (name: string) => {
   border-radius: 12px;
 }
 
+.table-scroll-wrapper {
+  overflow-x: auto;
+}
+
 .workflow-table :deep(.el-table__row) {
   transition: background-color 0.2s ease;
 }
 
 .activity-table :deep(.el-table__row) {
   transition: background-color 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .disk-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat-card :deep(.el-card__body) {
+    padding: 16px;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-right: 12px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
 }
 </style>

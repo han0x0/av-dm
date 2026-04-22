@@ -1,52 +1,36 @@
 <template>
   <el-container class="layout-container">
-    <el-aside width="220px" class="sidebar">
-      <div class="logo">
-        <el-icon :size="28" color="var(--dm-sidebar-active-text)"><VideoPlay /></el-icon>
-        <span>AV-DM 管理</span>
-      </div>
-      
-      <el-menu
-        :default-active="$route.path"
-        router
-        class="sidebar-menu"
-        :background-color="'transparent'"
-        :text-color="'var(--dm-sidebar-text)'"
-        :active-text-color="'var(--dm-sidebar-active-text)'"
-      >
-        <el-menu-item index="/dashboard">
-          <el-icon><Odometer /></el-icon>
-          <span>概览</span>
-        </el-menu-item>
-        
-        <el-menu-item index="/tasks">
-          <el-icon><List /></el-icon>
-          <span>任务管理</span>
-        </el-menu-item>
-        
-        <el-menu-item index="/logs">
-          <el-icon><Document /></el-icon>
-          <span>日志查看</span>
-        </el-menu-item>
-        
-        <el-menu-item index="/settings">
-          <el-icon><Setting /></el-icon>
-          <span>系统设置</span>
-        </el-menu-item>
-      </el-menu>
-      
-      <div class="sidebar-footer">
-        <el-button type="danger" text @click="handleLogout">
-          <el-icon><SwitchButton /></el-icon>
-          退出登录
-        </el-button>
-      </div>
+    <!-- 桌面端侧边栏 -->
+    <el-aside v-if="!isMobile" width="220px" class="sidebar">
+      <SidebarContent @navigate="drawerVisible = false" />
     </el-aside>
-    
+
+    <!-- 移动端抽屉侧边栏 -->
+    <el-drawer
+      v-if="isMobile"
+      v-model="drawerVisible"
+      :with-header="false"
+      size="220px"
+      direction="ltr"
+      class="mobile-sidebar-drawer"
+    >
+      <SidebarContent @navigate="drawerVisible = false" />
+    </el-drawer>
+
     <el-container>
       <el-header class="header">
-        <div class="breadcrumb">
-          {{ $route.meta.title || 'AV Download Manager' }}
+        <div class="header-left">
+          <el-button
+            v-if="isMobile"
+            :icon="Menu"
+            circle
+            size="small"
+            @click="drawerVisible = true"
+            class="menu-btn"
+          />
+          <div class="breadcrumb">
+            {{ $route.meta.title || 'AV Download Manager' }}
+          </div>
         </div>
         <div class="header-actions">
           <el-tag v-if="statsStore.lastUpdate" type="info" size="small" effect="plain">
@@ -69,7 +53,7 @@
           />
         </div>
       </el-header>
-      
+
       <el-main class="main-content">
         <router-view />
       </el-main>
@@ -77,67 +61,117 @@
   </el-container>
 </template>
 
-<script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+<script lang="ts">
+// 侧边栏内容子组件（复用）
+import { defineComponent, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  VideoPlay,
-  Odometer,
-  List,
-  Document,
-  Setting,
-  SwitchButton,
-  Refresh,
-  Sunny,
-  Moon,
+  VideoPlay, Odometer, List, Document, Setting, SwitchButton,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+
+export const SidebarContent = defineComponent({
+  name: 'SidebarContent',
+  emits: ['navigate'],
+  setup(_, { emit }) {
+    const router = useRouter()
+    const authStore = useAuthStore()
+
+    const handleLogout = async () => {
+      try {
+        await ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
+        await authStore.logout()
+        router.push('/login')
+        ElMessage.success('已退出登录')
+      } catch {
+        // cancel
+      }
+    }
+
+    return () => h('div', { class: 'sidebar-inner' }, [
+      h('div', { class: 'logo' }, [
+        h('el-icon', { size: 28, color: 'var(--dm-sidebar-active-text)' }, [h(VideoPlay)]),
+        h('span', {}, 'AV-DM 管理'),
+      ]),
+      h('el-menu', {
+        defaultActive: router.currentRoute.value.path,
+        router: true,
+        class: 'sidebar-menu',
+        backgroundColor: 'transparent',
+        textColor: 'var(--dm-sidebar-text)',
+        activeTextColor: 'var(--dm-sidebar-active-text)',
+        onSelect: () => emit('navigate'),
+      }, [
+        h('el-menu-item', { index: '/dashboard' }, [
+          h('el-icon', {}, [h(Odometer)]),
+          h('span', {}, '概览'),
+        ]),
+        h('el-menu-item', { index: '/tasks' }, [
+          h('el-icon', {}, [h(List)]),
+          h('span', {}, '任务管理'),
+        ]),
+        h('el-menu-item', { index: '/logs' }, [
+          h('el-icon', {}, [h(Document)]),
+          h('span', {}, '日志查看'),
+        ]),
+        h('el-menu-item', { index: '/settings' }, [
+          h('el-icon', {}, [h(Setting)]),
+          h('span', {}, '系统设置'),
+        ]),
+      ]),
+      h('div', { class: 'sidebar-footer' }, [
+        h('el-button', { type: 'danger', text: true, onClick: handleLogout }, [
+          h('el-icon', {}, [h(SwitchButton)]),
+          ' 退出登录',
+        ]),
+      ]),
+    ])
+  },
+})
+</script>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  Refresh, Sunny, Moon, Menu,
+} from '@element-plus/icons-vue'
 import { useStatsStore } from '@/stores/stats'
 import { useThemeStore } from '@/stores/theme'
+import { SidebarContent } from './Layout.vue'
 
 const router = useRouter()
-const authStore = useAuthStore()
 const statsStore = useStatsStore()
 const themeStore = useThemeStore()
 
 let refreshTimer: number | null = null
 
-const formatTime = (date: Date) => {
-  return date.toLocaleTimeString('zh-CN')
-}
+const MOBILE_BREAKPOINT = 768
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < MOBILE_BREAKPOINT)
+const drawerVisible = ref(false)
 
-const refreshData = () => {
-  statsStore.refreshAll()
-}
-
-const handleLogout = async () => {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      type: 'warning',
-    })
-    await authStore.logout()
-    router.push('/login')
-    ElMessage.success('已退出登录')
-  } catch {
-    // 取消退出
+const updateWindowWidth = () => {
+  windowWidth.value = window.innerWidth
+  if (!isMobile.value) {
+    drawerVisible.value = false
   }
 }
 
+const formatTime = (date: Date) => date.toLocaleTimeString('zh-CN')
+
+const refreshData = () => statsStore.refreshAll()
+
 onMounted(() => {
-  // 初始加载数据
   statsStore.refreshAll()
-  
-  // 每 5 秒自动刷新
-  refreshTimer = window.setInterval(() => {
-    statsStore.refreshAll()
-  }, 5000)
+  refreshTimer = window.setInterval(() => statsStore.refreshAll(), 5000)
+  window.addEventListener('resize', updateWindowWidth)
 })
 
 onUnmounted(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer)
-  }
+  if (refreshTimer) clearInterval(refreshTimer)
+  window.removeEventListener('resize', updateWindowWidth)
 })
 </script>
 
@@ -152,6 +186,12 @@ onUnmounted(() => {
   flex-direction: column;
   border-right: 1px solid var(--dm-border);
   transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.sidebar-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
@@ -204,6 +244,16 @@ onUnmounted(() => {
   transition: background-color 0.3s ease;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-btn {
+  flex-shrink: 0;
+}
+
 .breadcrumb {
   font-size: 16px;
   font-weight: 500;
@@ -222,5 +272,34 @@ onUnmounted(() => {
   padding: 20px;
   overflow-y: auto;
   transition: background-color 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+  }
+
+  .breadcrumb {
+    font-size: 14px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-actions .el-tag {
+    display: none;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+}
+</style>
+
+<style>
+.mobile-sidebar-drawer .el-drawer__body {
+  padding: 0 !important;
+  background-color: var(--dm-bg-sidebar);
 }
 </style>

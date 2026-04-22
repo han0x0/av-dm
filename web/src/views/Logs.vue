@@ -177,6 +177,35 @@ onUnmounted(() => {
 .header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .el-input,
+  .header-actions .el-select {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .log-container {
+    max-height: 50vh;
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+  }
 }
 
 .log-container {

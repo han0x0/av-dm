@@ -118,6 +118,16 @@ const handleLogin = async () => {
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+@media (max-width: 768px) {
+  .login-card {
+    max-width: 92%;
+  }
+
+  .login-header h1 {
+    font-size: 20px;
+  }
+}
+
 .login-card :deep(.el-card__header) {
   border-bottom-color: var(--dm-border);
   padding: 30px 20px 20px;

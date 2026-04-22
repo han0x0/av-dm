@@ -10,7 +10,7 @@
         <el-progress
           v-if="task.progress !== null"
           :percentage="Math.round(task.progress / 10)"
-          style="width: 200px;"
+          style="max-width: 200px; width: 100%;"
         />
         <span v-else>-</span>
       </el-descriptions-item>

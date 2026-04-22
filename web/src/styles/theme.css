@@ -424,6 +424,26 @@ body {
   background: #484f58;
 }
 
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .el-dialog {
+    width: 95% !important;
+    margin: 10vh auto 0 !important;
+  }
+
+  .el-drawer {
+    width: 80% !important;
+  }
+
+  .mobile-sidebar-drawer .el-drawer {
+    width: 220px !important;
+  }
+
+  .el-message-box {
+    width: 90% !important;
+  }
+}
+
 /* Smooth transitions for theme switching */
 .sidebar,
 .header,

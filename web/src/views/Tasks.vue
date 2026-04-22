@@ -38,13 +38,14 @@
         </div>
       </template>
       
-      <el-table
-        v-loading="tasksStore.loading"
-        :data="tasksStore.tasks"
-        stripe
-        style="width: 100%"
-        class="tasks-table"
-      >
+      <div class="table-scroll-wrapper">
+        <el-table
+          v-loading="tasksStore.loading"
+          :data="tasksStore.tasks"
+          stripe
+          style="width: 100%; min-width: 700px;"
+          class="tasks-table"
+        >
         <el-table-column prop="content_id" label="番号" width="140" sortable>
           <template #default="{ row }">
             <el-link type="primary" @click="showDetail(row)" :underline="false">
@@ -115,7 +116,8 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
       
       <div class="pagination-wrapper">
         <el-pagination
@@ -275,6 +277,39 @@ onMounted(() => {
 .header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .el-input,
+  .header-actions .el-select {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .pagination-wrapper {
+    justify-content: center;
+  }
+
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  .task-drawer :deep(.el-drawer) {
+    width: 85% !important;
+  }
 }
 
 .text-secondary {
