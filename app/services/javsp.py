@@ -79,7 +79,7 @@ def _match_content_id(folder_name: str, content_id: str) -> bool:
     return False
 
 
-def find_actual_media_folder(base_path: str, content_id: str = "") -> str:
+def find_actual_media_folder(base_path: str, content_id: str = "", task_name: str = "") -> str:
     """
     找到实际包含视频文件的目录。
     BitComet 可能在 base_path 下创建子文件夹（来自 torrent 的 name 字段）。
@@ -88,6 +88,7 @@ def find_actual_media_folder(base_path: str, content_id: str = "") -> str:
     Args:
         base_path: 基础下载路径（如 /home/sandbox/Downloads）
         content_id: 番号（如 KNB-406），用于精确匹配子目录
+        task_name: BitComet 任务名称（torrent name），辅助匹配
     """
     if not os.path.isdir(base_path):
         return base_path
@@ -109,6 +110,22 @@ def find_actual_media_folder(base_path: str, content_id: str = "") -> str:
     except Exception:
         pass
     
+    # 优先用 task_name 匹配（如果有提供）
+    if task_name:
+        matched_dirs = []
+        for name, full_path in subdirs_with_video:
+            if _match_content_id(name, task_name):
+                matched_dirs.append((name, full_path))
+        
+        if matched_dirs:
+            if len(matched_dirs) > 1:
+                shortest = min(matched_dirs, key=lambda x: len(x[0]))
+                logger.debug(f"多个子目录匹配 task_name {task_name}，选择最短名称: {shortest[0]}")
+                return shortest[1]
+            else:
+                logger.debug(f"找到匹配 task_name 的子目录: {matched_dirs[0][0]}")
+                return matched_dirs[0][1]
+    
     # 优先级1：如果提供了 content_id，严格匹配番号
     if content_id:
         matched_dirs = []
@@ -126,26 +143,24 @@ def find_actual_media_folder(base_path: str, content_id: str = "") -> str:
                 logger.debug(f"找到匹配番号的子目录: {matched_dirs[0][0]}")
                 return matched_dirs[0][1]
         else:
-            # 没有匹配到，记录警告
-            logger.warning(f"未找到匹配番号 {content_id} 的子目录，可用目录: {[n for n, _ in subdirs_with_video]}")
+            # 没有匹配到，记录警告，直接返回 base_path
+            # 不再 fallback 到选择其他子文件夹，避免多米诺骨牌式错位
+            logger.warning(
+                f"未找到匹配番号 {content_id} 或 task_name {task_name} 的子目录，"
+                f"可用目录: {[n for n, _ in subdirs_with_video]}，返回 base_path: {base_path}"
+            )
+            return base_path
     
-    # 优先级2：只有一个子文件夹 → 直接使用
+    # 没有提供 content_id 时的 fallback（理论上不应发生）
     if len(subdirs_with_video) == 1:
         return subdirs_with_video[0][1]
     
-    # 优先级3：多个子文件夹，优先选择短名称（避免超长标题）
     if len(subdirs_with_video) > 1:
-        # 过滤掉超长名称（超过100字符的可能是广告/垃圾信息）
         reasonable_dirs = [(n, p) for n, p in subdirs_with_video if len(n) <= 100]
         if reasonable_dirs:
-            # 选择名称最短的
             shortest = min(reasonable_dirs, key=lambda x: len(x[0]))
-            logger.warning(f"多个子目录，选择最短名称: {shortest[0]} (过滤了 {len(subdirs_with_video) - len(reasonable_dirs)} 个超长名称)")
+            logger.warning(f"无番号匹配，多个子目录，选择最短名称: {shortest[0]}")
             return shortest[1]
-        else:
-            # 所有名称都超长，选择第一个
-            logger.error(f"所有子目录名称都超长(>100字符): {[n for n, _ in subdirs_with_video]}")
-            return subdirs_with_video[0][1]
     
     # 没有子文件夹，但直接有视频文件
     if has_direct_video:

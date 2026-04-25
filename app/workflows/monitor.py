@@ -297,7 +297,24 @@ class MonitorWorkflow:
             
             # 动态探测实际媒体目录
             base_folder = record.save_folder or f"{settings.bitcomet_download_path}/{content_id}"
-            actual_folder = find_actual_media_folder(base_folder, content_id=content_id)
+            # 使用 task_name 辅助匹配，提高精确度（防止 fallback 到其他任务的文件夹）
+            task_name = task.task_name if task else ""
+            actual_folder = find_actual_media_folder(base_folder, content_id=content_id, task_name=task_name)
+            
+            # 如果返回的是 base_path 且没有直接视频文件，说明真的找不到文件夹
+            if actual_folder == base_folder:
+                import os
+                has_video = False
+                video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.ts', '.m2ts'}
+                try:
+                    for f in os.listdir(base_folder):
+                        if os.path.isfile(os.path.join(base_folder, f)) and os.path.splitext(f)[1].lower() in video_exts:
+                            has_video = True
+                            break
+                except Exception:
+                    pass
+                if not has_video:
+                    raise Exception(f"未找到任务文件夹: {content_id} (task_name={task_name})")
             
             # 处理长文件夹名：创建短路径软链接
             safe_folder, symlink_created = get_safe_folder_path(actual_folder, content_id)

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-04-26
+
+### Fixed
+- **修复下载任务文件夹多米诺骨牌式错位**：`find_actual_media_folder` 在找不到匹配番号的子文件夹时，会 fallback 到"选择名称最短的子文件夹"，导致某个任务被错误指向其他任务的文件夹。JavSP 刮削后移走文件，后续任务又找不到自己的文件夹，形成连锁错位。
+  - `find_actual_media_folder` 增加 `task_name` 参数，优先使用 BitComet 任务名（torrent name）辅助匹配。
+  - **关键修复**：找不到匹配子文件夹时，直接返回 `base_path`，**不再 fallback 到选择其他文件夹**。
+  - `monitor.py` 和 `cleanup.py` 在调用后增加保护逻辑：如果返回 `base_path` 且没有直接视频文件，报错跳过，避免误操作其他任务。
+
 ## [0.4.1] - 2026-04-22
 
 ### Fixed
