@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-04-27
+
+### Fixed
+- **修复 JavSP 刮削完成后无法检测整理状态的问题**：
+  - `find_actual_media_folder` 在找不到含视频的子目录时，新增 fallback 逻辑：检查是否有匹配番号的**空子目录**（视频可能已被 JavSP 移走，但文件夹仍有 `.bc!` 等残留文件）。
+  - `cleanup.py` 中 `_check_single_task`、`_process_timeout_check`、`_retry_javsp_task` 的跳过逻辑放宽：当目录下没有视频文件时，如果存在匹配番号的子目录，继续检测 JavSP 整理状态而不是直接跳过。
+  - 根因：`save_folder` 存储的是父目录 `/home/sandbox/Downloads`，JavSP 移走视频后 `find_actual_media_folder` 找不到含视频的子目录而返回父目录，后续逻辑因"没有视频文件"直接跳过，导致任务永远无法被清理。
+
 ## [0.4.2] - 2026-04-26
 
 ### Fixed

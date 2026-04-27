@@ -143,8 +143,18 @@ def find_actual_media_folder(base_path: str, content_id: str = "", task_name: st
                 logger.debug(f"找到匹配番号的子目录: {matched_dirs[0][0]}")
                 return matched_dirs[0][1]
         else:
-            # 没有匹配到，记录警告，直接返回 base_path
-            # 不再 fallback 到选择其他子文件夹，避免多米诺骨牌式错位
+            # 未找到含视频的匹配子目录，检查是否有匹配番号的空子目录
+            # （视频可能已被 JavSP 移走，但文件夹仍有残留文件如 .bc!）
+            try:
+                for name in os.listdir(base_path):
+                    full = os.path.join(base_path, name)
+                    if os.path.isdir(full) and _match_content_id(name, content_id):
+                        logger.debug(f"找到匹配番号的空子目录（视频可能已移走）: {name}")
+                        return full
+            except Exception:
+                pass
+            
+            # 真的没有匹配子目录，记录警告，直接返回 base_path
             logger.warning(
                 f"未找到匹配番号 {content_id} 或 task_name {task_name} 的子目录，"
                 f"可用目录: {[n for n, _ in subdirs_with_video]}，返回 base_path: {base_path}"

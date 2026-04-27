@@ -28,7 +28,7 @@ from app.api.v1.endpoints.workflows import set_scheduler
 fastapi_app = FastAPI(
     title=settings.app_name,
     description="AV Download Manager Web API",
-    version="0.4.2",
+    version="0.4.3",
 )
 
 
@@ -43,7 +43,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": settings.app_name,
-        "version": "0.4.2"
+        "version": "0.4.3"
     }
 
 # 配置 CORS

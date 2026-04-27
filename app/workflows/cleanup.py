@@ -12,7 +12,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.services import BitCometClient, JavSPClient, JellyfinClient
-from app.services.javsp import find_actual_media_folder, get_safe_folder_path
+from app.services.javsp import find_actual_media_folder, get_safe_folder_path, _match_content_id
 from app.database import get_db_session, DownloadRecord
 from app.config import settings
 from app.logger import logger, log_workflow_start, log_workflow_end, log_cleanup_deleted
@@ -338,19 +338,24 @@ class CleanupWorkflow:
             base_folder = record.save_folder or f"{settings.bitcomet_download_path}/{content_id}"
             actual_folder = find_actual_media_folder(base_folder, content_id=content_id)
             
-            # 如果返回的是 base_path 且没有直接视频文件，说明找不到文件夹，跳过
+            # 如果返回的是 base_path 且没有直接视频文件，检查是否有匹配番号的子目录
+            # （视频可能已被 JavSP 移走，但文件夹仍有残留文件如 .bc!）
             if actual_folder == base_folder:
                 import os
                 has_video = False
+                has_matching_subdir = False
                 video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.ts', '.m2ts'}
                 try:
                     for f in os.listdir(base_folder):
-                        if os.path.isfile(os.path.join(base_folder, f)) and os.path.splitext(f)[1].lower() in video_exts:
+                        full = os.path.join(base_folder, f)
+                        if os.path.isfile(full) and os.path.splitext(f)[1].lower() in video_exts:
                             has_video = True
                             break
+                        elif os.path.isdir(full) and _match_content_id(f, content_id):
+                            has_matching_subdir = True
                 except Exception:
                     pass
-                if not has_video:
+                if not has_video and not has_matching_subdir:
                     logger.debug(f"未找到任务文件夹，跳过整理检查: {content_id}")
                     return
             
@@ -431,19 +436,24 @@ class CleanupWorkflow:
         base_folder = record.save_folder or f"{settings.bitcomet_download_path}/{content_id}"
         actual_folder = find_actual_media_folder(base_folder, content_id=content_id)
         
-        # 如果返回的是 base_path 且没有直接视频文件，说明找不到文件夹，跳过
+        # 如果返回的是 base_path 且没有直接视频文件，检查是否有匹配番号的子目录
+        # （视频可能已被 JavSP 移走，但文件夹仍有残留文件如 .bc!）
         if actual_folder == base_folder:
             import os
             has_video = False
+            has_matching_subdir = False
             video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.ts', '.m2ts'}
             try:
                 for f in os.listdir(base_folder):
-                    if os.path.isfile(os.path.join(base_folder, f)) and os.path.splitext(f)[1].lower() in video_exts:
+                    full = os.path.join(base_folder, f)
+                    if os.path.isfile(full) and os.path.splitext(f)[1].lower() in video_exts:
                         has_video = True
                         break
+                    elif os.path.isdir(full) and _match_content_id(f, content_id):
+                        has_matching_subdir = True
             except Exception:
                 pass
-            if not has_video:
+            if not has_video and not has_matching_subdir:
                 logger.debug(f"未找到任务文件夹，跳过整理检查: {content_id}")
                 return
         
@@ -634,19 +644,24 @@ class CleanupWorkflow:
         base_folder = record.save_folder or f"{settings.bitcomet_download_path}/{content_id}"
         actual_folder = find_actual_media_folder(base_folder, content_id=content_id)
         
-        # 如果返回的是 base_path 且没有直接视频文件，说明找不到文件夹，跳过
+        # 如果返回的是 base_path 且没有直接视频文件，检查是否有匹配番号的子目录
+        # （视频可能已被 JavSP 移走，但文件夹仍有残留文件如 .bc!）
         if actual_folder == base_folder:
             import os
             has_video = False
+            has_matching_subdir = False
             video_exts = {'.mp4', '.mkv', '.avi', '.mov', '.wmv', '.ts', '.m2ts'}
             try:
                 for f in os.listdir(base_folder):
-                    if os.path.isfile(os.path.join(base_folder, f)) and os.path.splitext(f)[1].lower() in video_exts:
+                    full = os.path.join(base_folder, f)
+                    if os.path.isfile(full) and os.path.splitext(f)[1].lower() in video_exts:
                         has_video = True
                         break
+                    elif os.path.isdir(full) and _match_content_id(f, content_id):
+                        has_matching_subdir = True
             except Exception:
                 pass
-            if not has_video:
+            if not has_video and not has_matching_subdir:
                 logger.debug(f"未找到任务文件夹，跳过 JavSP 重试: {content_id}")
                 return
         
